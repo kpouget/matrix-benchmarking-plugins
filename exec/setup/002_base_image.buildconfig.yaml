@@ -45,6 +45,7 @@ spec:
        StrictModes no \n\
        " \
        && rm /sbin/nologin && ln -s /usr/bin/bash /sbin/nologin \
+       && rm -f /etc/ssh/sshd_config && ln -s ${HOME}/custom_ssh/sshd_config /etc/ssh/ \
        \
        && touch /var/log/lastlog \
        && chgrp utmp /var/log/lastlog \

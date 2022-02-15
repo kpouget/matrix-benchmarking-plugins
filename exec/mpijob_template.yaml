@@ -3,6 +3,7 @@ kind: MPIJob
 metadata:
   name: {{ .Name }}
 spec:
+  sshAuthMountPath: /home/mpi/.ssh
   cleanPodPolicy: Running
   slotsPerWorker: 1
   mpiReplicaSpecs:
@@ -26,7 +27,6 @@ spec:
           - name: mpi-launcher
             command:
             - mpirun
-            - --allow-run-as-root
             - -np
             - "{{ .Nproc }}"
             - -bind-to
@@ -69,8 +69,5 @@ spec:
           - name: mpi-worker
             image: {{ .Image }}
             imagePullPolicy: Always
-            securityContext:
-              privileged: true
           nodeSelector:
             node.kubernetes.io/instance-type: {{ .Machine }}
-
