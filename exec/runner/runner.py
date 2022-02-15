@@ -3,7 +3,7 @@
 import json
 import subprocess
 import tempfile
-import os
+import os, sys
 import glob
 
 tmp = tempfile.mkdtemp()
@@ -29,3 +29,6 @@ for filepath in glob.glob(f"{tmp}/*"):
         content = "".join(f.readlines())
 
     runner_results["artifact_"+filepath.rpartition("/")[-1]] = content
+
+print(json.dumps(dictionary, indent = 4) )
+sys.exit(proc.returncode)
