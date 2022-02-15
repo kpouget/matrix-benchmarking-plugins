@@ -58,14 +58,9 @@ spec:
             labelSelector:
               matchLabels:
                 app: {{ .Name }}-worker
-          affinity:
-            nodeAffinity:
-              requiredDuringSchedulingIgnoredDuringExecution:
-                nodeSelectorTerms:
-                - matchExpressions:
-                  - key: node-role.kubernetes.io/master
-                    operator: DoesNotExist
           containers:
           - name: mpi-worker
             image: {{ .Image }}
             imagePullPolicy: Always
+          nodeSelector:
+            node.kubernetes.io/instance-type: {{ .Machine }}
