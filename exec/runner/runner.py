@@ -6,7 +6,7 @@ import tempfile
 import os
 import glob
 
-tmp = tempfile.mkstemp(dir="/tmp/")
+tmp = tempfile.mkdtemp()
 
 cmd = [os.getenv("CMD_FROM_RUNNER")]
 args_env = os.getenv("ARGS_FROM_RUNNER")
