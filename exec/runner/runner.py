@@ -30,5 +30,5 @@ for filepath in glob.glob(f"{tmp}/*"):
 
     runner_results["artifact_"+filepath.rpartition("/")[-1]] = content
 
-print(json.dumps(dictionary, indent = 4) )
+print(json.dumps(runner_results, indent = 4) )
 sys.exit(proc.returncode)
