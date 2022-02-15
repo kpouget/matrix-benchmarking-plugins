@@ -50,6 +50,7 @@ def __parse_osu(dirname):
             if not line: continue
             if "Failed to add the host" in line: continue
             if "Warning: Permanently added" in line: continue
+            if "local probe returned unhandled shell" in line: continue
 
             if line.startswith('#'):
                 if results.osu_title is None:
