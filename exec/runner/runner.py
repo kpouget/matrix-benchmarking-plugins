@@ -71,7 +71,7 @@ def __parse_osu(dirname):
 
 res = __parse_osu(tmp)
 
-for k, v in res.__dict__:
+for k, v in res.__dict__.items():
     runner_results[f"data_{k}"] = v
 
 print(json.dumps(runner_results, indent = 4) )
