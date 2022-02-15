@@ -13,7 +13,7 @@ spec:
     imagePullPolicy: Always
     env:
     - name: CMD_FROM_RUNNER
-      value: "./exec/run_benchmark.sh"
+      value: "/workload/exec/run_benchmark.sh"
     - name: ARGS_FROM_RUNNER
       value: "run=1 cloud=aws machine=m5.2xlarge network=SDN mode=p2p operation=latency"
     - name: KUBECONFIG

@@ -12,7 +12,7 @@ spec:
     dockerfile: |2
       FROM registry.access.redhat.com/ubi8/ubi
 
-      RUN dnf install --quiet -y git python3
+      RUN dnf install --quiet -y git python3 golang
 
       # Install dependencies: `oc`
       ARG OCP_CLI_VERSION=latest
@@ -20,10 +20,10 @@ spec:
 
       RUN curl --silent ${OCP_CLI_URL} | tar xfz - -C /usr/local/bin oc
 
-      RUN git clone https://github.com/kpouget/matrix-benchmarking-workloads.git -b runner/mpi-benchmarking /workloads
+      RUN git clone https://github.com/kpouget/matrix-benchmarking-workloads.git -b runner/mpi-benchmarking /workload
       ENV USER_NAME=runner USER=runner
 
-      WORKDIR /workloads
+      WORKDIR /workload
 
     type: Dockerfile
   strategy:
