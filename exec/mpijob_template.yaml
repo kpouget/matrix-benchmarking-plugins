@@ -21,7 +21,7 @@ spec:
             volumeMounts:
             - mountPath: /etc/mpi
               name: mpi-job-config
-            - mountPath: /root/.ssh
+            - mountPath: /home/mpi/.ssh
               name: ssh-auth
           containers:
           - name: mpi-launcher
