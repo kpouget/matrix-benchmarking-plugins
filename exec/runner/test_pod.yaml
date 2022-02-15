@@ -8,7 +8,7 @@ spec:
     command:
     - bash
     - -c
-    - "python3 ./exec/runner/runner.py"
+    - "git pull --quiet 2>/dev/null; python3 ./exec/runner/runner.py"
     image: "image-registry.openshift-image-registry.svc:5000/mpi-benchmarking/mpi-bench:runner"
     imagePullPolicy: Always
     env:

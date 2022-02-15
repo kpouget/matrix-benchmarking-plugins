@@ -69,5 +69,3 @@ spec:
           - name: mpi-worker
             image: {{ .Image }}
             imagePullPolicy: Always
-          nodeSelector:
-            node.kubernetes.io/instance-type: {{ .Machine }}
