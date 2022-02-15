@@ -1,0 +1,36 @@
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: mpi-runner-image
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: mpi-bench:runner
+  source:
+    dockerfile: |2
+      FROM registry.access.redhat.com/ubi8/ubi
+
+      RUN dnf install --quiet -y git python3
+
+      # Install dependencies: `oc`
+      ARG OCP_CLI_VERSION=latest
+      ARG OCP_CLI_URL=https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/${OCP_CLI_VERSION}/openshift-client-linux.tar.gz
+
+      RUN curl --silent ${OCP_CLI_URL} | tar xfz - -C /usr/local/bin oc
+
+      RUN git clone https://github.com/kpouget/matrix-benchmarking-workloads.git -b runner/mpi-benchmarking /workloads
+      ENV USER_NAME=runner USER=runner
+
+      WORKDIR /workloads
+
+    type: Dockerfile
+  strategy:
+    dockerStrategy:
+      from:
+        kind: DockerImage
+        name: registry.access.redhat.com/ubi8/ubi
+    type: Docker
+  triggers:
+  - type: ConfigChange

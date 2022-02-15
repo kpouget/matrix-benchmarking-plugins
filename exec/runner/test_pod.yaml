@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: runner
+spec:
+  containers:
+  - name: cnt
+    command:
+    - python3
+    -
+    image: "image-registry.openshift-image-registry.svc:5000/mpi-benchmarking/mpi-bench:runner"
+    imagePullPolicy: Always
+    env:
+    - name: ARGS_FROM_RUNNER
+      value: "run=1 cloud=aws machine=m5.2xlarge network=SDN mode=p2p operation=latency"
+    - name: KUBECONFIG
+      value: /etc/kubeconfig/kubeconfig
+    volumeMounts:
+    - mountPath: /etc/kubeconfig
+      name: kubeconfig-secret
+      readOnly: true
+  restartPolicy: Never
+  volumes:
+  - name: kubeconfig-secret
+    # oc create secret generic kubeconfig-secret --from-file $KUBECONFIG
+    secret:
+      secretName: kubeconfig-secret
