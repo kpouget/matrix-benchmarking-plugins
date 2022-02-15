@@ -13,7 +13,7 @@ args_env = os.getenv("ARGS_FROM_RUNNER")
 
 args = args_env.split(" ")
 
-proc = subprocess.run(["echo"] + cmd + args,
+proc = subprocess.run(cmd + args,
                       cwd=tmp,
                       stdout=subprocess.PIPE,
                       stderr=subprocess.PIPE)
