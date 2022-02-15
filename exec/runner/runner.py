@@ -21,8 +21,8 @@ proc = subprocess.run(["echo"] + cmd + args,
 runner_results = dict()
 runner_results["exit_code"] = proc.returncode
 runner_results["artifact_settings"] = " ".join(args)
-runner_results["artifact_stdout"] = proc.stdout
-runner_results["artifact_stderr"] = proc.stderr
+runner_results["artifact_stdout"] = proc.stdout.decode("utf8")
+runner_results["artifact_stderr"] = proc.stderr.decode("utf8")
 
 for filepath in glob.glob(f"{tmp}/*"):
     with open(filepath) as f:
