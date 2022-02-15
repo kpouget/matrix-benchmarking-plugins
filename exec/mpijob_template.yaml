@@ -13,7 +13,7 @@ spec:
         spec:
           initContainers:
           - name: wait-hostfilename
-            image: image-registry.openshift-image-registry.svc:5000/mpi-benchmark/mpi-bench:base
+            image: image-registry.openshift-image-registry.svc:5000/mpi-benchmarking/mpi-bench:base
             command:
             - bash
             - -cx
@@ -42,7 +42,7 @@ spec:
             - bash
             - -c
             - {{ .Command }}
-            image: image-registry.openshift-image-registry.svc:5000/mpi-benchmark/mpi-bench:base
+            image: image-registry.openshift-image-registry.svc:5000/mpi-benchmarking/mpi-bench:base
             imagePullPolicy: Always
     Worker:
       replicas: {{ .Nproc }}
