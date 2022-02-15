@@ -28,4 +28,4 @@ for filepath in glob.glob(f"{tmp}/*"):
     with open(filepath) as f:
         content = "".join(f.readlines())
 
-    runner_results["artifact_"filepath.rpartition("/")[-1]] = content
+    runner_results["artifact_"+filepath.rpartition("/")[-1]] = content

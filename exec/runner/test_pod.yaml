@@ -1,16 +1,19 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: runner
+  name: mpi-runner
 spec:
   containers:
   - name: cnt
     command:
-    - python3
-    -
+    - bash
+    - -c
+    - "git pull; python3 ./exec/runner/runner.py"
     image: "image-registry.openshift-image-registry.svc:5000/mpi-benchmarking/mpi-bench:runner"
     imagePullPolicy: Always
     env:
+    - name: CMD_FROM_RUNNER
+      value: "./exec/run_benchmark.sh"
     - name: ARGS_FROM_RUNNER
       value: "run=1 cloud=aws machine=m5.2xlarge network=SDN mode=p2p operation=latency"
     - name: KUBECONFIG
