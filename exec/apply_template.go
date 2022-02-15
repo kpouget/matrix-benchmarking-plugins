@@ -58,7 +58,7 @@ func main() {
 
 		nproc = 2
 
-		image = "image-registry.openshift-image-registry.svc:5000/mpi-benchmark/mpi-bench:osu-bench"
+		image = "image-registry.openshift-image-registry.svc:5000/mpi-benchmarking/mpi-bench:osu-bench"
 
 	} else if *flag_name == "osu-allreduce" || *flag_name == "osu-alltoall" {
 		var bin string
