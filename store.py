@@ -1,73 +1,48 @@
 import types, datetime
 import yaml
+import pathlib
 
 import store
 import store.simple
 from store.simple import *
 
-def sample_rewrite_settings(params_dict):
-    # add a @ on top of parameter name 'run'
-    # to treat it as multiple identical executions
+def inference_rewrite_settings(params_dict):
+    if "run" in params_dict:
+        params_dict["@run"] = params_dict["run"]
+        del params_dict["run"]
 
-    params_dict["@run"] = params_dict["run"]
-    del params_dict["run"]
+    del params_dict["script"]
 
-    # if parameter 'run' was missing, set '0' as default value
-    if params_dict["@run"] == "":
-        params_dict["@run"] = "0"
-
-    # overwrite 'operation' parameter
-    mode = params_dict.pop("mode")
-    op = params_dict.pop("operation")
-    params_dict["operation"] = f"{mode}-{op}"
-
-    # remove the 'expe' setting
-    params_dict.pop("expe")
+    if params_dict["framework"] == "tf":
+        params_dict["framework"] = "TensorFlow"
+    elif params_dict["framework"] == "onnxruntime":
+        params_dict["framework"] = "Onnx Runtime"
+    elif params_dict["framework"] == "pytorch":
+        params_dict["framework"] = "PyTorch"
 
     return params_dict
 
-def __parse_date(dirname, settings):
+
+def inference_parse_results(dirname, settings):
     results = types.SimpleNamespace()
 
-    with open(f"{dirname}/date") as f:
-        results.date_ts = int(f.readlines()[0])
+    with open(pathlib.Path(dirname) / "stdout") as f:
+        for line in f:
+            if line.startswith("Mean latency:"):
+                # eg: Mean latency: 29534116.227086924
+                results.mean_latency = float(line.strip().rpartition(" ")[-1])
 
-    return results
+            if line.startswith("TestScenario.SingleStream"):
+                # eg: TestScenario.SingleStream qps=33.83, mean=0.0295, time=600.155, queries=20305, tiles=50.0:0.0297,80.0:0.0300,90.0:0.0302,95.0:0.0303,99.0:0.0312,99.9:0.0329
 
-def __parse_procs(dirname, settings):
-    results = types.SimpleNamespace()
+                for kv in line.strip().partition(" ")[-1].split(", "):
+                    k, v = kv.split("=")
+                    try: v = float(v)
+                    except ValueError: pass
+                    results.__dict__[k] = v
 
-    with open(f"{dirname}/procs") as f:
-        results.procs = int(f.readlines()[0])
 
-    return results
+    return [({}, results)]
 
-def __parse_memfree(dirname, settings):
-    results = types.SimpleNamespace()
-
-    with open(f"{dirname}/memfree") as f:
-        results.memfree = int(f.readlines()[0]) * 1000 # unit if kB
-
-    return results
-
-def sample_parse_results(dirname, settings):
-    mode = settings.get("mode")
-    if not mode:
-        print(f"ERROR: failed to parse '{dirname}', 'mode' setting not defined.")
-        return
-
-    mode_fct = {
-        "date":  __parse_date,
-        "procs": __parse_procs,
-        "memfree":  __parse_memfree,
-    }
-
-    fct = mode_fct.get(mode)
-    if not fct:
-        print(f"ERROR: failed to parse '{dirname}', mode={mode} not recognized.")
-        return
-
-    return [[{}, fct(dirname, settings)]]
-
-store.custom_rewrite_settings = sample_rewrite_settings
-store.simple.custom_parse_results = sample_parse_results
+store.custom_rewrite_settings = inference_rewrite_settings
+store.simple.custom_parse_results = inference_parse_results
