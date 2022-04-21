@@ -56,8 +56,7 @@ spec:
   volumes:
   - name: storage-volume
     persistentVolumeClaim:
-      claimName: benchmarking-coco-dataset
+      claimName: benchmarking-bert-dataset
   restartPolicy: Never
   nodeSelector:
     nvidia.com/gpu.present: "true"
-    node.kubernetes.io/instance-type: p3.2xlarge

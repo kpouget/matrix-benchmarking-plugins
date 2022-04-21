@@ -1,0 +1,33 @@
+apiVersion: run.ai/v1
+kind: RunaiJob
+metadata:
+  name: "15gpus-busy-doing-nothing"
+  namespace: "matrix-benchmarking"
+  labels:
+    priorityClassName: "build"
+spec:
+  template:
+    metadata:
+      labels:
+        user: admin
+        job-name: "15gpus-busy-doing-nothing"
+    spec:
+      restartPolicy: Never
+      schedulerName: runai-scheduler
+      containers:
+      - image: "quay.io/openshift-psap/nvidiadl-ssd-training-benchmark:ssd"
+        name: ctr
+        env:
+        - name: SRC_CONFIG_DIR
+          value: /workdir/models/research/configs/
+        command: [ "bash", "-ceuxo", "pipefail"]
+        args:
+        - |
+          sleep +inf
+        resources:
+          limits:
+            nvidia.com/gpu: "15"
+      volumes:
+      - name: storage-volume
+        persistentVolumeClaim:
+          claimName: benchmarking-bert-dataset

@@ -33,7 +33,7 @@ spec:
   volumes:
   - name: storage-volume
     persistentVolumeClaim:
-      claimName: benchmarking-coco-dataset
+      claimName: benchmarking-bert-dataset
   - name: s3-creds
     secret:
       secretName: s3-creds
