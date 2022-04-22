@@ -8,15 +8,71 @@ import plotly.subplots
 
 import matrix_benchmarking.common as common
 import matrix_benchmarking.plotting.table_stats as table_stats
+from .. import store as runai_store
 
 def register():
     ComparisonPlot()
+    ComparisonPlot(metric_name="GPU Power Usage", yaxis_title="Watt", y_units="Watt")
+    ComparisonPlot(metric_name="GPU Compute Usage", yaxis_title="% of the GPU", y_units="%")
+    ComparisonPlot(metric_name="GPU Memory Usage", yaxis_title="% of the memory", y_units="GB")
+
+    PromPlot("DCGM_FI_DEV_POWER_USAGE", "Power usage",
+             filter_x=runai_store.filter_runai_metrics)
+    PromPlot("DCGM_FI_DEV_FB_USED", "Memory usage (in GB)",
+             filter_x=runai_store.filter_runai_metrics,
+             transform_y=lambda y:y/1000)
+    PromPlot("DCGM_FI_DEV_GPU_UTIL", "Compute usage (in %)",
+             filter_x=runai_store.filter_runai_metrics)
+
+def entry_name(entry, variables):
+    for key in ["inference_count", "inference_fraction",
+                "training_count", "training_fraction",
+                "expe", "partionner"]:
+        try: variables.pop(key)
+        except KeyError: pass
+
+    inference_part = f"{entry.settings.inference_count} x inference at {int(float(entry.settings.inference_fraction)*100)}%"
+    training_part = f"{entry.settings.training_count} x training at {int(float(entry.settings.training_fraction)*100)}%"
+
+    if not entry.results.training_speed:
+        name = inference_part
+    elif not entry.results.inference_speed:
+        name = training_part
+    else:
+        name = f"{inference_part}<br>{training_part}"
+
+    name += f"<br>{1/entry.results.group_slice*100:.0f}% of the GPU/Pod"
+
+    if entry.settings.partionner == "sequential":
+        if int(entry.settings.inference_count) > 1 or  int(entry.settings.training_count) > 1:
+            name += "<br>(sequential)"
+
+    if variables:
+        remaining_args = "<br>".join([f"{key}={entry.settings.__dict__[key]}" for key in variables])
+        name += "<br>" + remaining_args
+
+    if entry.settings.partionner == "sequential":
+        if entry.results.training_speed:
+            if entry.settings.training_count == "1":
+                name += "<br>(<b>training reference</b>)"
+        else:
+            if entry.settings.inference_count == "1":
+                name += "<br>(<b>inference reference</b>)"
+    return name
 
 class ComparisonPlot():
-    def __init__(self, ):
-        self.name = f"Comparison"
-        self.id_name = f"comparison"
+    def __init__(self, metric_name=None, yaxis_title=None, y_units="img/s"):
+        if metric_name:
+            self.name = metric_name
+            self.metric_key = metric_name.replace(" ", "_").lower()
+            self.id_name = "metric" + self.metric_key
+        else:
+            self.name = f"Compute speed"
+            self.id_name = f"compute_spee"
+            self.metric_key = None
 
+        self.yaxis_title = yaxis_title
+        self.y_units = y_units
         table_stats.TableStats._register_stat(self)
         common.Matrix.settings["stats"].add(self.name)
 
@@ -24,19 +80,6 @@ class ComparisonPlot():
         return "nothing"
 
     def do_plot(self, ordered_vars, settings, param_lists, variables, cfg):
-        try: variables.pop("inference_count")
-        except KeyError: pass
-        try: variables.pop("inference_fraction")
-        except KeyError: pass
-        try: variables.pop("training_count")
-        except KeyError: pass
-        try: variables.pop("training_fraction")
-        except KeyError: pass
-        try: variables.pop("expe")
-        except KeyError: pass
-
-        variables.pop("partionner")
-
         legend_names = set()
         results = defaultdict(dict)
         group_names = []
@@ -52,57 +95,27 @@ class ComparisonPlot():
         ref_keys = {}
 
         for entry in common.Matrix.all_records(settings, param_lists):
-            inference_part = f"{entry.settings.inference_count} x inference at {int(float(entry.settings.inference_fraction)*100)}%"
-            training_part = f"{entry.settings.training_count} x training at {int(float(entry.settings.training_fraction)*100)}%"
+            full_gpu = settings['partionner'] == "sequential"
 
-            if settings['partionner'] == "sequential":
-                group_slice = 1
-            else:
-                group_slice = (int(entry.settings.training_count) + int(entry.settings.inference_count))
-
-            slices.append(group_slice)
-            if not entry.results.training_speed:
-                group_name = inference_part
-            elif not entry.results.inference_speed:
-                group_name = training_part
-            else:
-                group_name = f"{inference_part}<br>{training_part}"
-
-            group_name += f"<br>{1/group_slice*100:.0f}% of the GPU/Pod"
-
-            if settings['partionner'] == "sequential":
-                if int(entry.settings.inference_count) > 1 or  int(entry.settings.training_count) > 1:
-                    group_name += "<br>(sequential)"
-
-            if variables:
-                remaining_args = "<br>".join([f"{key}={entry.settings.__dict__[key]}" for key in variables])
-                group_name += "<br>" + remaining_args
-
-            full_gpu = False
-            group_name = f"{group_name}"
-            if settings['partionner'] == "sequential":
-                full_gpu = True
-
-                if entry.results.training_speed:
-                    if entry.settings.training_count == "1":
-                        group_name += "<br>(<b>training reference</b>)"
-                else:
-                    if entry.settings.inference_count == "1":
-                        group_name += "<br>(<b>inference reference</b>)"
-
+            group_name = entry_name(entry, variables)
             group_names.append(group_name)
 
-            group_slices[group_name] = group_slice
+            group_slices[group_name] = entry.results.group_slice
+            slices.append(entry.results.group_slice)
+
             if self.metric_key is None:
                 mode_values = dict(inference=entry.results.inference_speed, training=entry.results.training_speed)
             else:
-                mode_values = dict(metric=entry.results.__dict__[self.metric_key])
+                mode_values = dict(metric={1: entry.results.__dict__[self.metric_key]})
 
             for mode_name, mode_data in mode_values.items():
                 for idx, values in enumerate(mode_data.values()):
                     group_lengths[group_name] += 1
 
-                    if mode_name == "inference":
+                    if mode_name == "metric":
+                        legend_name = ""
+                        value = values
+                    elif mode_name == "inference":
                         legend_name = f"Inference #{idx}"
                         value = sum(values)/len(values)
                         max_values["inference"] = max([max_values["inference"], value])
@@ -110,8 +123,10 @@ class ComparisonPlot():
                         legend_name = f"Training #{idx}"
                         value = values
                         max_values["training"] = max([max_values["training"], value])
+
                     if full_gpu:
                         legend_name += " (full)"
+
                     ref_keys[legend_name] = mode_name
                     legend_names.add(legend_name)
                     results[legend_name][group_name] = value
@@ -166,14 +181,17 @@ class ComparisonPlot():
                 x_idx.append(position)
 
                 try: value = results[legend_name][group_name]
-                except KeyError: value = None
+                except KeyError:
+                    print("missing", legend_name, group_name)
+                    value = None
 
                 if value is None or group_name in ref_groups:
                     if group_name in ref_groups:
-                        if value is not None:
-                            text_base.append(f"{ref_keys[legend_name].title()} reference: {value:.0f} img/s")
+                        if self.metric_key:
+                            what = "Inference" if "inference reference" in group_name else "Training"
+                            text_base.append(f"{what} reference<br>{value or -1:.0f} {self.y_units}")
                         else:
-                            text_base.append(f"Reference: ?????")
+                            text_base.append(f"{ref_keys[legend_name].title()} reference: {value or -1:.0f} {self.y_units}")
                         y_base.append(value)
                     else:
                         text_base.append(None)
@@ -183,14 +201,14 @@ class ComparisonPlot():
                     y_extra.append(None)
                 else:
                     slices = group_slices[group_name]
-                    ref = ref_values[ref_keys[legend_name]]
+                    ref = ref_values.get(ref_keys[legend_name])
                     if ref is None:
-                        logging.warning(f"No ref found for {legend_name}")
+                        if not self.metric_key:
+                            logging.warning(f"No ref found for {legend_name}")
                         ref = value*group_slices[group_name]
-
+                        if ref == 0: ref = 1
                     local_ref = ref/slices
-
-                    text_base.append(f"{value:.1f} img/s")
+                    text_base.append(f"{value:.1f} {self.y_units}")
                     base = ref/group_slices[group_name]
                     extra = value-base
                     pct = (value-local_ref)/local_ref*100
@@ -209,10 +227,10 @@ class ComparisonPlot():
 
             name = "Training" if is_training else "Inference"
             if "full" in legend_name:
-                color = "blue" if is_training else "green"
+                color = "cornflowerblue" if is_training else "green"
                 name = f"Full GPU {name}"
             else:
-                color = "cornflowerblue" if is_training else "darkgreen"
+                color = "mediumslateblue" if is_training else "darkgreen"
                 name = f"Fractional {name}"
 
 
@@ -228,10 +246,12 @@ class ComparisonPlot():
                 secondary_y=secondary_axis,
             )
 
+            if self.metric_key: continue
+
             fig.add_trace(
                 go.Bar(name=name, marker_color=color,
                        x=x_idx, y=y_extra, text=text_extra,
-                       marker_line_color='red', marker_line_width=2,
+                       marker_line_color="indianred", marker_line_width=2,
                        width=width-(width*0.1),
                        legendgroup=name,
                        showlegend=False,
@@ -245,7 +265,7 @@ class ComparisonPlot():
         )
 
         if ref_keys:
-            ref = ref_values[list(ref_keys.values())[0]]
+            ref = ref_values.get(list(ref_keys.values())[0])
             for slices in [1, 2, 3, 4, 6] if ref else []:
 
                 fig.add_trace(go.Scatter(
@@ -262,22 +282,91 @@ class ComparisonPlot():
                     ),
                 ), secondary_y=True)
 
-        yaxis_title = "<b>{what} speed</b> (in img/s, higher is better)"
-        fig.update_layout(title=f"NVDIA Deep Learning SSD AI/ML Processing Speed Comparison<br>using Run:AI GPU fractional GPU", title_x=0.5,
-                          showlegend=True,
-                          barmode='stack',
-                          yaxis_title=yaxis_title.format(what="Inference"),
+        if self.metric_key:
+            fig.update_layout(title=self.name,
+                              title_x=0.5,
+                              showlegend=False,
+                              yaxis_title=self.yaxis_title,
+                              )
+        else:
+            yaxis_title = "<b>{what} speed</b> (in img/s, higher is better)"
+
+            fig.update_layout(title=f"NVDIA Deep Learning SSD AI/ML Processing Speed Comparison<br>using Run:AI GPU fractional GPU",
+                              showlegend=True,
+                              yaxis_title=yaxis_title.format(what="Inference"),
+                              )
+
+            fig.update_yaxes(title_text=yaxis_title.format(what="Training"), secondary_y=True)
+        fig.update_layout(barmode='stack',
+                          title_x=0.5,
                           #paper_bgcolor='rgb(248, 248, 255)',
                           plot_bgcolor='rgb(248, 248, 255)',
                           )
-        fig.update_yaxes(title_text=yaxis_title.format(what="Training"), secondary_y=True)
+
+
         fig.update_yaxes(showgrid=False, showline=True, linewidth=0.1, linecolor='black')
         fig.update_xaxes(showgrid=False, showline=True, linewidth=0.1, linecolor='black', mirror=True)
 
 
-        training_better_than_ref = (max_values["training"] - ref_values["training"])/ref_values["training"]
-        inference_better_than_ref = (max_values["inference"] - ref_values["inference"])/ref_values["inference"]
+        if not self.metric_key:
+            training_better_than_ref = (max_values["training"] - ref_values["training"])/ref_values["training"]
+            inference_better_than_ref = (max_values["inference"] - ref_values["inference"])/ref_values["inference"]
 
-        fig.update_yaxes(range=[0, max_values["inference"] * (1.02+training_better_than_ref)], secondary_y=False)
-        fig.update_yaxes(range=[0, max_values["training"] * (1.02+inference_better_than_ref)], secondary_y=True)
+            fig.update_yaxes(range=[0, max_values["inference"] * (1.02+training_better_than_ref)], secondary_y=False)
+            fig.update_yaxes(range=[0, max_values["training"] * (1.02+inference_better_than_ref)], secondary_y=True)
+
+        return fig, ""
+
+class PromPlot():
+    def __init__(self, metric, y_title, filter_x=lambda x:x, transform_y=lambda x:x):
+        self.name = f"Prom: {metric}"
+        self.id_name = f"prom_overview_{metric}"
+        self.metric = metric
+        self.y_title = y_title
+        self.filter_x = filter_x
+        self.transform_y = transform_y
+
+        table_stats.TableStats._register_stat(self)
+        common.Matrix.settings["stats"].add(self.name)
+
+    def do_hover(self, meta_value, variables, figure, data, click_info):
+        return "nothing"
+
+    def do_plot(self, ordered_vars, settings, param_lists, variables, cfg):
+        fig = go.Figure()
+
+        plot_title = f"Prometheus: {self.metric}"
+        y_max = 0
+        for entry in common.Matrix.all_records(settings, param_lists):
+            for metric in self.filter_x(entry.results.metrics[self.metric]):
+                x_values = [x for x, y in metric["values"]]
+                y_values = [self.transform_y(float(y)) for x, y in metric["values"]]
+
+                name_key = entry_name(entry, variables).replace("<br>", " - ").replace("<b>", "").replace("</b>", "")
+
+                x_start = x_values[0]
+                x_values = [(x-x_start)/60 for x in x_values]
+
+                y_max = max([y_max]+y_values)
+
+                trace = go.Scatter(x=x_values, y=y_values,
+                                   name=name_key,
+                                   hoverlabel= {'namelength' :-1},
+                                   showlegend=True,
+                                   mode='markers+lines')
+                fig.add_trace(trace)
+
+        fig.update_layout(
+            title=plot_title, title_x=0.5,
+            yaxis=dict(title=self.y_title, range=[0, y_max*1.05]),
+            xaxis=dict(title=f"Time (in min)"))
+
+        fig.update_layout(legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        ))
+
         return fig, ""

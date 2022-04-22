@@ -3,6 +3,7 @@ import yaml
 from collections import defaultdict
 import glob
 import logging
+import statistics as stats
 
 import matrix_benchmarking.store as store
 import matrix_benchmarking.store.simple as store_simple
@@ -67,13 +68,44 @@ def __parse_runai_gpu_burn(dirname, settings):
 
     return results
 
+def filter_runai_metrics(metrics):
+    found_it = False
+    for metric in parsing_prom.filter_value_in_label(metrics, "ssd-", "exported_pod"):
+        yield metric
+        found_it = True
 
+    if found_it: return
+
+    for metric in parsing_prom.filter_doesnt_have_label(metrics, "pod_name"):
+        yield metric
+
+first_skip = True
 def __parse_runai_ssd(dirname, settings):
     results = types.SimpleNamespace()
     results.oom =  defaultdict(lambda: False)
     results.runtime = {}
     results.training_speed = {}
     results.inference_speed = defaultdict(list)
+
+    if settings["partionner"] == "sequential":
+        if int(settings["training_count"]) > 1 or int(settings["inference_count"]) > 1:
+            global first_skip
+            if first_skip:
+                logging.warning("Skipping multi-job sequential(hardcoded)")
+                first_skip = False
+
+            return
+
+    prometheus_tgz = dirname / "prometheus_db.tgz"
+    if not prometheus_tgz.exists():
+        store.simple.invalid_directory(dirname, import_settings, "Prometheus archive not available")
+        return
+
+    results.metrics = store_prom_db.extract_metrics(prometheus_tgz, INTERESTING_METRICS, dirname)
+
+    results.gpu_power_usage = sum(parsing_prom.mean(results.metrics["DCGM_FI_DEV_POWER_USAGE"], filter_runai_metrics))
+    results.gpu_compute_usage = stats.mean(parsing_prom.mean(results.metrics["DCGM_FI_DEV_GPU_UTIL"], filter_runai_metrics))
+    results.gpu_memory_usage = stats.mean(parsing_prom.mean(results.metrics["DCGM_FI_DEV_FB_USED"], filter_runai_metrics)) / 1000
 
     for fpath in glob.glob(f"{dirname}/*.log"):
         fname = fpath.rpartition("/")[-1]
@@ -117,6 +149,10 @@ def __parse_runai_ssd(dirname, settings):
 
             except Exception as e:
                 results.runtime[fname] = None
+
+
+    results.group_slice = 1 if settings['partionner'] == "sequential" else \
+        (int(settings["training_count"]) + int(settings["inference_count"]))
 
     return results
 
