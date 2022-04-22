@@ -23,7 +23,7 @@ class ComparisonPlot():
     def do_hover(self, meta_value, variables, figure, data, click_info):
         return "nothing"
 
-    def do_plot(self, ordered_vars, params, param_lists, variables, cfg):
+    def do_plot(self, ordered_vars, settings, param_lists, variables, cfg):
         try: variables.pop("inference_count")
         except KeyError: pass
         try: variables.pop("inference_fraction")
@@ -51,14 +51,14 @@ class ComparisonPlot():
         max_values = dict(training=0, inference=0)
         ref_keys = {}
 
-        for entry in common.Matrix.all_records(params, param_lists):
-            inference_part = f"{entry.params.inference_count} x inference at {int(float(entry.params.inference_fraction)*100)}%"
-            training_part = f"{entry.params.training_count} x training at {int(float(entry.params.training_fraction)*100)}%"
+        for entry in common.Matrix.all_records(settings, param_lists):
+            inference_part = f"{entry.settings.inference_count} x inference at {int(float(entry.settings.inference_fraction)*100)}%"
+            training_part = f"{entry.settings.training_count} x training at {int(float(entry.settings.training_fraction)*100)}%"
 
-            if params['partionner'] == "sequential":
+            if settings['partionner'] == "sequential":
                 group_slice = 1
             else:
-                group_slice = (int(entry.params.training_count) + int(entry.params.inference_count))
+                group_slice = (int(entry.settings.training_count) + int(entry.settings.inference_count))
 
             slices.append(group_slice)
             if not entry.results.training_speed:
@@ -70,30 +70,35 @@ class ComparisonPlot():
 
             group_name += f"<br>{1/group_slice*100:.0f}% of the GPU/Pod"
 
-            if params['partionner'] == "sequential":
-                if int(entry.params.inference_count) > 1 or  int(entry.params.training_count) > 1:
+            if settings['partionner'] == "sequential":
+                if int(entry.settings.inference_count) > 1 or  int(entry.settings.training_count) > 1:
                     group_name += "<br>(sequential)"
 
             if variables:
-                remaining_args = "<br>".join([f"{key}={entry.params.__dict__[key]}" for key in variables])
+                remaining_args = "<br>".join([f"{key}={entry.settings.__dict__[key]}" for key in variables])
                 group_name += "<br>" + remaining_args
 
             full_gpu = False
             group_name = f"{group_name}"
-            if params['partionner'] == "sequential":
+            if settings['partionner'] == "sequential":
                 full_gpu = True
 
                 if entry.results.training_speed:
-                    if entry.params.training_count == "1":
+                    if entry.settings.training_count == "1":
                         group_name += "<br>(<b>training reference</b>)"
                 else:
-                    if entry.params.inference_count == "1":
+                    if entry.settings.inference_count == "1":
                         group_name += "<br>(<b>inference reference</b>)"
 
             group_names.append(group_name)
 
             group_slices[group_name] = group_slice
-            for mode_name, mode_data in dict(inference=entry.results.inference_speed, training=entry.results.training_speed).items():
+            if self.metric_key is None:
+                mode_values = dict(inference=entry.results.inference_speed, training=entry.results.training_speed)
+            else:
+                mode_values = dict(metric=entry.results.__dict__[self.metric_key])
+
+            for mode_name, mode_data in mode_values.items():
                 for idx, values in enumerate(mode_data.values()):
                     group_lengths[group_name] += 1
 
@@ -112,9 +117,9 @@ class ComparisonPlot():
                     results[legend_name][group_name] = value
                     group_legends[group_name].append(legend_name)
 
-            if params["partionner"] == "sequential":
+            if settings["partionner"] == "sequential":
                 for key in ref_values:
-                    if entry.params.__dict__[f"{key}_count"] == "1":
+                    if entry.settings.__dict__[f"{key}_count"] == "1":
                         if ref_values[key] is not None:
                             logging.warning(f"Found multiple {key} reference values (prev: {ref_values[key]}), new: {value} ...")
 

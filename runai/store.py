@@ -6,36 +6,43 @@ import logging
 
 import matrix_benchmarking.store as store
 import matrix_benchmarking.store.simple as store_simple
+import matrix_benchmarking.store.prom_db as store_prom_db
+import matrix_benchmarking.parsing.prom as parsing_prom
 
+INTERESTING_METRICS = [
+    "DCGM_FI_DEV_POWER_USAGE",
+    "DCGM_FI_DEV_FB_USED",
+    "DCGM_FI_DEV_GPU_UTIL",
+]
 
-def _rewrite_settings(params_dict):
+def _rewrite_settings(settings_dict):
     # add a @ on top of parameter name 'run'
     # to treat it as multiple identical executions
 
-    #params_dict["@run"] = params_dict["run"]
-    #del params_dict["run"]
+    #settings_dict["@run"] = settings_dict["run"]
+    #del settings_dict["run"]
 
-    params_dict["ngpu"] = int(params_dict.get("ngpu", 1))
+    settings_dict["ngpu"] = int(settings_dict.get("ngpu", 1))
 
-    if params_dict.get("mode"):
-        if params_dict.get("mode") == "training":
-            params_dict["inference_count"] = "0"
-            params_dict["inference_fraction"] = "0"
-            params_dict["training_count"] = "1"
-            params_dict["training_fraction"] = "1"
+    if settings_dict.get("mode"):
+        if settings_dict.get("mode") == "training":
+            settings_dict["inference_count"] = "0"
+            settings_dict["inference_fraction"] = "0"
+            settings_dict["training_count"] = "1"
+            settings_dict["training_fraction"] = "1"
         else:
-            params_dict["inference_count"] = "1"
-            params_dict["inference_fraction"] = "1"
-            params_dict["training_count"] = "0"
-            params_dict["training_fraction"] = "0"
+            settings_dict["inference_count"] = "1"
+            settings_dict["inference_fraction"] = "1"
+            settings_dict["training_count"] = "0"
+            settings_dict["training_fraction"] = "0"
 
-        params_dict["partionner"] = "native"
-        del params_dict["mode"]
+        settings_dict["partionner"] = "native"
+        del settings_dict["mode"]
 
-    try: del params_dict["inference_time"]
+    try: del settings_dict["inference_time"]
     except KeyError: pass
 
-    return params_dict
+    return settings_dict
 
 def __parse_runai_gpu_burn(dirname, settings):
     results = types.SimpleNamespace()
