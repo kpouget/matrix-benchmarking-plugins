@@ -29,18 +29,26 @@ spec:
           sed -i 's|/data/coco2017_tfrecords|'$STORAGE_DIR'/coco2017_tfrecords|' /tmp/cfg/*
           sed -i 's|/checkpoints|'$STORAGE_DIR'/checkpoints|' /tmp/cfg/*
           nvidia-smi -L
-
           if [[ "{{ mode }}" == "inference" ]]; then
-            LOOP_COUNT=5
-            for i in $(seq $LOOP_COUNT); do
-              echo "Starting loop $i/$LOOP_COUNT"
+            count=0
+            SECONDS=0 # Bash special var
+            while true; do
               bash examples/{{ script_name }} /tmp/cfg --raport_file=/tmp/summary.json
-              echo "Done with loop $i/$LOOP_COUNT"
+              count=$(($count + 1))
+              echo "INFERENCE_LOOP_COUNT=$count"
+              if [[ "$INFERENCE_TIME" ]]; then
+                minutes=$((SECONDS/60))
+                if [[ "$minutes" -ge "$INFERENCE_TIME" ]]; then
+                  echo "Inference ran for ${minutes}, bailing out."
+                  break
+                fi
+              fi
             done
           else
             RESULTS_DIR=/tmp/results
             mkdir "$RESULTS_DIR"
             bash examples/{{ script_name }} "$RESULTS_DIR" /tmp/cfg --raport_file=/tmp/summary.json
+            cat "${RESULTS_DIR}/train_log" || true
           fi
     volumeMounts:
       - mountPath: /storage/
