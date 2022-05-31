@@ -1,0 +1,96 @@
+apiVersion: config.openshift.io/v1
+kind: ClusterVersion
+metadata:
+  creationTimestamp: '2022-04-01T08:58:26Z'
+  generation: 1
+  name: version
+  resourceVersion: '9014877'
+  uid: 87124cbf-d552-44f7-b8b9-519d4d8eb5b3
+spec:
+  channel: stable-4.10
+  clusterID: 2a440633-ff79-48e7-92c1-ac0cf2976514
+status:
+  availableUpdates:
+  - channels:
+    - candidate-4.10
+    - candidate-4.11
+    - eus-4.10
+    - fast-4.10
+    - stable-4.10
+    image: quay.io/openshift-release-dev/ocp-release@sha256:39f360002b9b5c730d1167879ad6437352d51e72acc9fe80add3ec2a0d20400d
+    url: https://access.redhat.com/errata/RHBA-2022:1241
+    version: 4.10.9
+  - channels:
+    - candidate-4.10
+    - candidate-4.11
+    - eus-4.10
+    - fast-4.10
+    - stable-4.10
+    image: quay.io/openshift-release-dev/ocp-release@sha256:0696e249622b4d07d8f4501504b6c568ed6ba92416176a01a12b7f1882707117
+    url: https://access.redhat.com/errata/RHSA-2022:1162
+    version: 4.10.8
+  - channels:
+    - candidate-4.10
+    - candidate-4.11
+    - eus-4.10
+    - fast-4.10
+    - stable-4.10
+    image: quay.io/openshift-release-dev/ocp-release@sha256:88b394e633e09dc23aa1f1a61ededd8e52478edf34b51a7dbbb21d9abde2511a
+    url: https://access.redhat.com/errata/RHBA-2022:1026
+    version: 4.10.6
+  - channels:
+    - candidate-4.10
+    - candidate-4.11
+    - eus-4.10
+    - fast-4.10
+    - stable-4.10
+    image: quay.io/openshift-release-dev/ocp-release@sha256:ee6a9c7a11f883e90489229f6c6dc78b434af12f5646f4f9411d73a98969f02a
+    url: https://access.redhat.com/errata/RHBA-2022:0928
+    version: 4.10.5
+  - channels:
+    - candidate-4.10
+    - candidate-4.11
+    - eus-4.10
+    - fast-4.10
+    - stable-4.10
+    image: quay.io/openshift-release-dev/ocp-release@sha256:9f9c3aaca64f62af992bae5de1e984571c8b812f598b74c84dc630b064389fb7
+    url: https://access.redhat.com/errata/RHBA-2022:0811
+    version: 4.10.4
+  conditions:
+  - lastTransitionTime: '2022-04-01T10:08:44Z'
+    message: Done applying 4.10.3
+    status: 'True'
+    type: Available
+  - lastTransitionTime: '2022-04-21T07:54:32Z'
+    message: Cluster operator authentication is not available
+    reason: ClusterOperatorNotAvailable
+    status: 'True'
+    type: Failing
+  - lastTransitionTime: '2022-04-01T10:08:44Z'
+    message: 'Error while reconciling 4.10.3: the cluster operator authentication
+      has not yet successfully rolled out'
+    reason: ClusterOperatorNotAvailable
+    status: 'False'
+    type: Progressing
+  - lastTransitionTime: '2022-04-06T18:45:19Z'
+    status: 'True'
+    type: RetrievedUpdates
+  desired:
+    channels:
+    - candidate-4.10
+    - candidate-4.11
+    - eus-4.10
+    - fast-4.10
+    - stable-4.10
+    image: quay.io/openshift-release-dev/ocp-release@sha256:7ffe4cd612be27e355a640e5eec5cd8f923c1400d969fd590f806cffdaabcc56
+    url: https://access.redhat.com/errata/RHSA-2022:0056
+    version: 4.10.3
+  history:
+  - completionTime: '2022-04-01T10:08:44Z'
+    image: quay.io/openshift-release-dev/ocp-release@sha256:7ffe4cd612be27e355a640e5eec5cd8f923c1400d969fd590f806cffdaabcc56
+    startedTime: '2022-04-01T08:58:26Z'
+    state: Completed
+    verified: false
+    version: 4.10.3
+  observedGeneration: 1
+  versionHash: B4kPHPhsp1Y=

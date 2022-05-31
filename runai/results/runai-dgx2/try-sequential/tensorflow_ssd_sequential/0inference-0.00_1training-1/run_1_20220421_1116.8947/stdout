@@ -1,0 +1,29 @@
+run ==> 1
+framework ==> tensorflow
+model ==> ssd
+fp ==> 16
+partionner ==> sequential
+expe ==> try-sequential
+training_count ==> 1
+training_fraction ==> 1
+inference_count ==> 0
+inference_fraction ==> 0.00
+
+Running non-interactively.
+Using the current directory to store the test artifacts (/home/kevin/openshift/matrix-benchmarking/matrix_benchmarking/workloads.workdirs/runai/runai/results/runai-dgx2/try-sequential/tensorflow_ssd_sequential/0inference-0.00_1training-1/run_1_20220421_1116.8947).
+Thu Apr 21 11:16:21 AM CEST 2022
+Deleting RunAIJobs ...
+No resources found
+Deleting Pods ...
+No resources found
+Preparing Prometheus ...
+/home/kevin/openshift/matrix-benchmarking
+Waiting for the completion of the training pods ...  pod/ssd-training-1
+Thu Apr 21 11:17:30 AM CEST 2022 pod/ssd-training-1 Running
+Thu Apr 21 11:27:44 AM CEST 2022 pod/ssd-training-1 Succeeded
+Pod pod/ssd-training-1 is done (Succeeded).
+All the training pods have completed their execution.
+Collecting Prometheus database ...
+No resources found
+Status: 
+All good.

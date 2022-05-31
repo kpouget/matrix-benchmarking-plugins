@@ -1,0 +1,267 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    gpu-fraction: "0.100000"
+    k8s.v1.cni.cncf.io/network-status: |-
+      [{
+          "name": "openshift-sdn",
+          "interface": "eth0",
+          "ips": [
+              "10.128.1.7"
+          ],
+          "default": true,
+          "dns": {}
+      }]
+    k8s.v1.cni.cncf.io/networks-status: |-
+      [{
+          "name": "openshift-sdn",
+          "interface": "eth0",
+          "ips": [
+              "10.128.1.7"
+          ],
+          "default": true,
+          "dns": {}
+      }]
+    openshift.io/scc: runai-jupyter-notebook
+    pod-group-name: pg-ssd-inference-5-c57d9348-5cd8-439f-8281-2a5219b6b88a
+    runai-allocated-gpu-memory: "3430"
+    runai-allocated-gpus: "0.1"
+    runai-allocated-mig-gpus: "0"
+    runai-calculated-status: Running
+    runai-gpu: "12"
+    runai-node: perfdgx2.perf.lab.eng.bos.redhat.com
+  creationTimestamp: "2022-04-21T12:33:28Z"
+  generateName: ssd-inference-5-
+  labels:
+    controller-uid: c57d9348-5cd8-439f-8281-2a5219b6b88a
+    job-name: ssd-inference-5
+    matrix-benchmarking: "true"
+    project: hello
+    runai-pod-job-mutated: "true"
+    runai/pod-index: 0-0
+    user: admin
+  name: ssd-inference-5-0-0
+  namespace: matrix-benchmarking
+  ownerReferences:
+  - apiVersion: run.ai/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: RunaiJob
+    name: ssd-inference-5
+    uid: c57d9348-5cd8-439f-8281-2a5219b6b88a
+  resourceVersion: "9105389"
+  uid: 4dd8d7c1-3aaf-4b3c-bb15-3bd8f88373e5
+spec:
+  containers:
+  - args:
+    - |
+      mkdir /tmp/cfg
+      cp -v "$SRC_CONFIG_DIR"/* /tmp/cfg
+      sed -i 's|/data/coco2017_tfrecords|'$STORAGE_DIR'/coco2017_tfrecords|' /tmp/cfg/*
+      sed -i 's|/checkpoints|'$STORAGE_DIR'/checkpoints|' /tmp/cfg/*
+
+      if [[ "inference" == "inference" ]]; then
+        count=0
+        SECONDS=0 # Bash special var
+        while true; do
+          bash examples/SSD320_FP16_inference.sh  /tmp/cfg --raport_file=/tmp/summary.json
+          count=$(($count + 1))
+          echo "INFERENCE_LOOP_COUNT=$count"
+          if [[ "$INFERENCE_TIME" ]]; then
+            minutes=$((SECONDS/60))
+            if [[ "$minutes" -ge "$INFERENCE_TIME" ]]; then
+              echo "Inference ran for ${minutes}, bailing out."
+              break
+            fi
+          fi
+        done
+      else
+        RESULTS_DIR=/tmp/results
+        mkdir "$RESULTS_DIR"
+        bash examples/SSD320_FP16_inference.sh  "$RESULTS_DIR" /tmp/cfg --raport_file=/tmp/summary.json
+        cat "${RESULTS_DIR}/train_log" || true
+      fi
+    command:
+    - bash
+    - -ceuxo
+    - pipefail
+    env:
+    - name: SRC_CONFIG_DIR
+      value: /workdir/models/research/configs/
+    - name: STORAGE_DIR
+      value: /storage
+    - name: INFERENCE_TIME
+    - name: reporterGatewayURL
+      value: runai-prometheus-pushgateway.runai.svc.cluster.local:9091
+    - name: REPORTER_GATEWAY_URL
+      value: runai-prometheus-pushgateway.runai.svc.cluster.local:9091
+    - name: podUUID
+      valueFrom:
+        fieldRef:
+          apiVersion: v1
+          fieldPath: metadata.uid
+    - name: POD_UUID
+      valueFrom:
+        fieldRef:
+          apiVersion: v1
+          fieldPath: metadata.uid
+    - name: NODE_NAME
+      valueFrom:
+        fieldRef:
+          apiVersion: v1
+          fieldPath: spec.nodeName
+    - name: POD_INDEX
+      value: "0"
+    - name: jobUUID
+      value: c57d9348-5cd8-439f-8281-2a5219b6b88a
+    - name: JOB_UUID
+      value: c57d9348-5cd8-439f-8281-2a5219b6b88a
+    - name: jobName
+      value: ssd-inference-5
+    - name: JOB_NAME
+      value: ssd-inference-5
+    - name: NVIDIA_VISIBLE_DEVICES
+      valueFrom:
+        configMapKeyRef:
+          key: RUNAI-VISIBLE-DEVICES
+          name: ssd-inference-5-2xf8d7g-runai-sh-gpu
+    - name: RUNAI_NUM_OF_GPUS
+      valueFrom:
+        configMapKeyRef:
+          key: RUNAI_NUM_OF_GPUS
+          name: ssd-inference-5-2xf8d7g-runai-sh-gpu
+    image: quay.io/openshift-psap/nvidiadl-ssd-training-benchmark:ssd
+    imagePullPolicy: IfNotPresent
+    name: ctr
+    resources:
+      requests:
+        cpu: 100m
+        memory: "10485760"
+    securityContext:
+      allowPrivilegeEscalation: false
+      runAsUser: 1000
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /storage/
+      name: storage-volume
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: kube-api-access-ckpl4
+      readOnly: true
+    - mountPath: /runai/shared
+      name: runai-shared-directory
+      readOnly: true
+    - mountPath: /etc/ld.so.preload
+      name: ssd-inference-5-2xf8d7g-runai-sh-gpu-vol
+      readOnly: true
+      subPath: ld.so.preload-key
+    - mountPath: /etc/runai.d/memory
+      name: ssd-inference-5-2xf8d7g-runai-sh-gpu-vol
+      readOnly: true
+      subPath: config
+    - mountPath: /etc/runai.d/pod_uuid
+      name: ssd-inference-5-2xf8d7g-runai-sh-gpu-vol
+      readOnly: true
+      subPath: pod-uuid
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: true
+  imagePullSecrets:
+  - name: default-dockercfg-snzvp
+  nodeName: perfdgx2.perf.lab.eng.bos.redhat.com
+  nodeSelector:
+    nvidia.com/gpu.present: "true"
+  preemptionPolicy: PreemptLowerPriority
+  priority: 0
+  restartPolicy: Never
+  schedulerName: runai-scheduler
+  securityContext:
+    seLinuxOptions:
+      level: s0:c26,c15
+  serviceAccount: default
+  serviceAccountName: default
+  terminationGracePeriodSeconds: 30
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoSchedule
+    key: node.kubernetes.io/memory-pressure
+    operator: Exists
+  volumes:
+  - name: storage-volume
+    persistentVolumeClaim:
+      claimName: benchmarking-bert-dataset
+  - name: kube-api-access-ckpl4
+    projected:
+      defaultMode: 420
+      sources:
+      - serviceAccountToken:
+          expirationSeconds: 3607
+          path: token
+      - configMap:
+          items:
+          - key: ca.crt
+            path: ca.crt
+          name: kube-root-ca.crt
+      - downwardAPI:
+          items:
+          - fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+            path: namespace
+      - configMap:
+          items:
+          - key: service-ca.crt
+            path: service-ca.crt
+          name: openshift-service-ca.crt
+  - hostPath:
+      path: /var/lib/runai/shared
+      type: DirectoryOrCreate
+    name: runai-shared-directory
+  - configMap:
+      defaultMode: 420
+      name: ssd-inference-5-2xf8d7g-runai-sh-gpu
+    name: ssd-inference-5-2xf8d7g-runai-sh-gpu-vol
+status:
+  conditions:
+  - lastProbeTime: null
+    lastTransitionTime: "2022-04-21T12:33:33Z"
+    status: "True"
+    type: Initialized
+  - lastProbeTime: null
+    lastTransitionTime: "2022-04-21T12:33:36Z"
+    status: "True"
+    type: Ready
+  - lastProbeTime: null
+    lastTransitionTime: "2022-04-21T12:33:36Z"
+    status: "True"
+    type: ContainersReady
+  - lastProbeTime: null
+    lastTransitionTime: "2022-04-21T12:33:33Z"
+    status: "True"
+    type: PodScheduled
+  containerStatuses:
+  - containerID: cri-o://248c7ce80765f187a6cf9fea996f26ef77dcf4e2ac510485f6923cb0d0d54038
+    image: quay.io/openshift-psap/nvidiadl-ssd-training-benchmark:ssd
+    imageID: quay.io/openshift-psap/nvidiadl-ssd-training-benchmark@sha256:0177e9f4174b98ed1b79a952b2bdf60be6c0a1d7d534b46e6f34a6012db4e52f
+    lastState: {}
+    name: ctr
+    ready: true
+    restartCount: 0
+    started: true
+    state:
+      running:
+        startedAt: "2022-04-21T12:33:36Z"
+  hostIP: 10.16.30.12
+  phase: Running
+  podIP: 10.128.1.7
+  podIPs:
+  - ip: 10.128.1.7
+  qosClass: Burstable
+  startTime: "2022-04-21T12:33:33Z"

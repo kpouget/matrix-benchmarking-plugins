@@ -1,0 +1,70 @@
+apiVersion: run.ai/v1
+kind: RunaiJob
+metadata:
+  name: "ssd-training-2"
+  namespace: "matrix-benchmarking"
+  labels:
+    priorityClassName: "build"
+    matrix-benchmarking: "true"
+    matrix-benchmarking-mode: "training"
+spec:
+  template:
+    metadata:
+      labels:
+        user: admin
+        matrix-benchmarking: "true"
+        job-name: "ssd-training-2"
+    spec:
+      nodeSelector:
+        nvidia.com/gpu.present: "true"
+      restartPolicy: Never
+      schedulerName: runai-scheduler
+      containers:
+      - image: "quay.io/openshift-psap/nvidiadl-ssd-training-benchmark:ssd"
+        name: ctr
+        env:
+        - name: SRC_CONFIG_DIR
+          value: /workdir/models/research/configs/
+        - name: STORAGE_DIR
+          value: /storage
+        - name: INFERENCE_TIME
+          value: ""
+        command: [ "bash", "-ceuxo", "pipefail"]
+        args:
+        - |
+          mkdir /tmp/cfg
+          cp -v "$SRC_CONFIG_DIR"/* /tmp/cfg
+          sed -i 's|/data/coco2017_tfrecords|'$STORAGE_DIR'/coco2017_tfrecords|' /tmp/cfg/*
+          sed -i 's|/checkpoints|'$STORAGE_DIR'/checkpoints|' /tmp/cfg/*
+
+          if [[ "training" == "inference" ]]; then
+            count=0
+            SECONDS=0 # Bash special var
+            while true; do
+              bash examples/SSD320_FP16_1GPU_BENCHMARK.sh /tmp/cfg --raport_file=/tmp/summary.json
+              count=$(($count + 1))
+              echo "INFERENCE_LOOP_COUNT=$count"
+              if [[ "$INFERENCE_TIME" ]]; then
+                minutes=$((SECONDS/60))
+                if [[ "$minutes" -ge "$INFERENCE_TIME" ]]; then
+                  echo "Inference ran for ${minutes}, bailing out."
+                  break
+                fi
+              fi
+            done
+          else
+            RESULTS_DIR=/tmp/results
+            mkdir "$RESULTS_DIR"
+            bash examples/SSD320_FP16_1GPU_BENCHMARK.sh "$RESULTS_DIR" /tmp/cfg --raport_file=/tmp/summary.json
+            cat "${RESULTS_DIR}/train_log" || true
+          fi
+        volumeMounts:
+        - mountPath: /storage/
+          name: storage-volume
+        resources:
+          limits:
+            nvidia.com/gpu: "0.33"
+      volumes:
+      - name: storage-volume
+        persistentVolumeClaim:
+          claimName: benchmarking-bert-dataset

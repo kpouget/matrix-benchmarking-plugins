@@ -1,0 +1,182 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    k8s.v1.cni.cncf.io/network-status: |-
+      [{
+          "name": "openshift-sdn",
+          "interface": "eth0",
+          "ips": [
+              "10.128.0.163"
+          ],
+          "default": true,
+          "dns": {}
+      }]
+    k8s.v1.cni.cncf.io/networks-status: |-
+      [{
+          "name": "openshift-sdn",
+          "interface": "eth0",
+          "ips": [
+              "10.128.0.163"
+          ],
+          "default": true,
+          "dns": {}
+      }]
+    openshift.io/scc: anyuid
+  creationTimestamp: "2022-04-21T09:50:49Z"
+  labels:
+    job-name: ssd-training-1
+    matrix-benchmarking: "true"
+    runai-pod-job-mutated: "true"
+  name: ssd-training-1
+  namespace: matrix-benchmarking
+  resourceVersion: "9055862"
+  uid: 1e4c32d4-cf81-4e42-8298-5144c0f2880d
+spec:
+  containers:
+  - args:
+    - |
+      mkdir /tmp/cfg
+      cp -v "$SRC_CONFIG_DIR"/* /tmp/cfg
+      sed -i 's|/data/coco2017_tfrecords|'$STORAGE_DIR'/coco2017_tfrecords|' /tmp/cfg/*
+      sed -i 's|/checkpoints|'$STORAGE_DIR'/checkpoints|' /tmp/cfg/*
+
+      if [[ "training" == "inference" ]]; then
+        LOOP_COUNT=5
+        for i in $(seq $LOOP_COUNT); do
+          echo "Starting loop $i/$LOOP_COUNT"
+          bash examples/SSD320_FP16_1GPU_BENCHMARK.sh /tmp/cfg --raport_file=/tmp/summary.json
+          echo "Done with loop $i/$LOOP_COUNT"
+        done
+      else
+        RESULTS_DIR=/tmp/results
+        mkdir "$RESULTS_DIR"
+        bash examples/SSD320_FP16_1GPU_BENCHMARK.sh "$RESULTS_DIR" /tmp/cfg --raport_file=/tmp/summary.json
+      fi
+    command:
+    - bash
+    - -ceuxo
+    - pipefail
+    env:
+    - name: SRC_CONFIG_DIR
+      value: /workdir/models/research/configs/
+    - name: STORAGE_DIR
+      value: /storage
+    - name: INFERENCE_TIME
+    image: quay.io/openshift-psap/nvidiadl-ssd-training-benchmark:ssd
+    imagePullPolicy: IfNotPresent
+    name: cnt
+    resources:
+      limits:
+        nvidia.com/gpu: "1"
+      requests:
+        nvidia.com/gpu: "1"
+    securityContext:
+      capabilities:
+        drop:
+        - MKNOD
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /storage/
+      name: storage-volume
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: kube-api-access-9snlg
+      readOnly: true
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: true
+  imagePullSecrets:
+  - name: default-dockercfg-snzvp
+  nodeName: perfdgx2.perf.lab.eng.bos.redhat.com
+  nodeSelector:
+    nvidia.com/gpu.present: "true"
+  preemptionPolicy: PreemptLowerPriority
+  priority: 0
+  restartPolicy: Never
+  schedulerName: default-scheduler
+  securityContext:
+    seLinuxOptions:
+      level: s0:c26,c15
+  serviceAccount: default
+  serviceAccountName: default
+  terminationGracePeriodSeconds: 30
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+  volumes:
+  - name: storage-volume
+    persistentVolumeClaim:
+      claimName: benchmarking-bert-dataset
+  - name: kube-api-access-9snlg
+    projected:
+      defaultMode: 420
+      sources:
+      - serviceAccountToken:
+          expirationSeconds: 3607
+          path: token
+      - configMap:
+          items:
+          - key: ca.crt
+            path: ca.crt
+          name: kube-root-ca.crt
+      - downwardAPI:
+          items:
+          - fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+            path: namespace
+      - configMap:
+          items:
+          - key: service-ca.crt
+            path: service-ca.crt
+          name: openshift-service-ca.crt
+status:
+  conditions:
+  - lastProbeTime: null
+    lastTransitionTime: "2022-04-21T09:50:51Z"
+    reason: PodCompleted
+    status: "True"
+    type: Initialized
+  - lastProbeTime: null
+    lastTransitionTime: "2022-04-21T10:01:07Z"
+    reason: PodCompleted
+    status: "False"
+    type: Ready
+  - lastProbeTime: null
+    lastTransitionTime: "2022-04-21T10:01:07Z"
+    reason: PodCompleted
+    status: "False"
+    type: ContainersReady
+  - lastProbeTime: null
+    lastTransitionTime: "2022-04-21T09:50:49Z"
+    status: "True"
+    type: PodScheduled
+  containerStatuses:
+  - containerID: cri-o://db0be852fa7693eb865c54d410b2bbf79ee02193017e49da352c05bb1e426941
+    image: quay.io/openshift-psap/nvidiadl-ssd-training-benchmark:ssd
+    imageID: quay.io/openshift-psap/nvidiadl-ssd-training-benchmark@sha256:0177e9f4174b98ed1b79a952b2bdf60be6c0a1d7d534b46e6f34a6012db4e52f
+    lastState: {}
+    name: cnt
+    ready: false
+    restartCount: 0
+    started: false
+    state:
+      terminated:
+        containerID: cri-o://db0be852fa7693eb865c54d410b2bbf79ee02193017e49da352c05bb1e426941
+        exitCode: 0
+        finishedAt: "2022-04-21T10:01:06Z"
+        reason: Completed
+        startedAt: "2022-04-21T09:50:54Z"
+  hostIP: 10.16.30.12
+  phase: Succeeded
+  podIP: 10.128.0.163
+  podIPs:
+  - ip: 10.128.0.163
+  qosClass: BestEffort
+  startTime: "2022-04-21T09:50:51Z"

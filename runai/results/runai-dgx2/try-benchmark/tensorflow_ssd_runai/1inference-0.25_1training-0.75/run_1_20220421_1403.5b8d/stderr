@@ -1,0 +1,8 @@
+++ egrep -v '(Terminating|Succeeded|Running)'
+++ oc get pods -lmatrix-benchmarking -ocustom-columns=phase:status.phase --no-headers -n matrix-benchmarking
+++ true
++ has_not_succeeded=
++ echo 'Status: '
++ [[ -n '' ]]
++ echo 'All good.'
++ exit 0

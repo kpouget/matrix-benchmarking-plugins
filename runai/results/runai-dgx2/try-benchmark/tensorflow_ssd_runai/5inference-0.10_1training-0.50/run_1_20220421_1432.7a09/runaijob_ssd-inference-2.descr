@@ -1,0 +1,184 @@
+Name:         ssd-inference-2
+Namespace:    matrix-benchmarking
+Labels:       matrix-benchmarking=true
+              matrix-benchmarking-mode=inference
+              priorityClassName=build
+              project=hello
+Annotations:  runai-calculated-status: Running
+              runai-current-allocated-gpus: 0.100
+              runai-current-allocated-gpus-memory: 3430
+              runai-current-allocated-vmgpus: 0.000
+              runai-current-requested-gpus: 0.100
+              runai-current-requested-gpus-memory: 0
+              runai-pending-pods: 0
+              runai-podgroup-requested-gpus: 0.100
+              runai-podgroup-requested-gpus-memory: 0
+              runai-running-pods: 1
+              runai-total-requested-gpus: 0.100
+              runai-total-requested-gpus-memory: 0
+              runai-used-nodes: perfdgx2.perf.lab.eng.bos.redhat.com
+API Version:  run.ai/v1
+Kind:         RunaiJob
+Metadata:
+  Creation Timestamp:  2022-04-21T12:33:20Z
+  Generation:          1
+  Managed Fields:
+    API Version:  run.ai/v1
+    Fields Type:  FieldsV1
+    fieldsV1:
+      f:metadata:
+        f:labels:
+          .:
+          f:matrix-benchmarking:
+          f:matrix-benchmarking-mode:
+          f:priorityClassName:
+      f:spec:
+        .:
+        f:template:
+          .:
+          f:metadata:
+            .:
+            f:labels:
+              .:
+              f:job-name:
+              f:matrix-benchmarking:
+              f:user:
+          f:spec:
+            .:
+            f:containers:
+            f:nodeSelector:
+              .:
+              f:nvidia.com/gpu.present:
+            f:restartPolicy:
+            f:schedulerName:
+            f:volumes:
+    Manager:      kubectl-create
+    Operation:    Update
+    Time:         2022-04-21T12:33:20Z
+    API Version:  run.ai/v1
+    Fields Type:  FieldsV1
+    fieldsV1:
+      f:status:
+        .:
+        f:active:
+        f:startTime:
+    Manager:      runaijob-controller
+    Operation:    Update
+    Subresource:  status
+    Time:         2022-04-21T12:33:20Z
+    API Version:  run.ai/v1
+    Fields Type:  FieldsV1
+    fieldsV1:
+      f:metadata:
+        f:annotations:
+          .:
+          f:runai-calculated-status:
+          f:runai-current-allocated-gpus:
+          f:runai-current-allocated-gpus-memory:
+          f:runai-current-allocated-vmgpus:
+          f:runai-current-requested-gpus:
+          f:runai-current-requested-gpus-memory:
+          f:runai-pending-pods:
+          f:runai-podgroup-requested-gpus:
+          f:runai-podgroup-requested-gpus-memory:
+          f:runai-running-pods:
+          f:runai-total-requested-gpus:
+          f:runai-total-requested-gpus-memory:
+          f:runai-used-nodes:
+    Manager:         kube-batch
+    Operation:       Update
+    Time:            2022-04-21T12:33:30Z
+  Resource Version:  9105310
+  UID:               702a48b2-48c9-4ca5-9e08-363024eab802
+Spec:
+  Template:
+    Metadata:
+      Annotations:
+        Gpu - Fraction:  0.100000
+      Labels:
+        Job - Name:             ssd-inference-2
+        Matrix - Benchmarking:  true
+        Project:                hello
+        User:                   admin
+    Spec:
+      Containers:
+        Args:
+          mkdir /tmp/cfg
+cp -v "$SRC_CONFIG_DIR"/* /tmp/cfg
+sed -i 's|/data/coco2017_tfrecords|'$STORAGE_DIR'/coco2017_tfrecords|' /tmp/cfg/*
+sed -i 's|/checkpoints|'$STORAGE_DIR'/checkpoints|' /tmp/cfg/*
+
+if [[ "inference" == "inference" ]]; then
+  count=0
+  SECONDS=0 # Bash special var
+  while true; do
+    bash examples/SSD320_FP16_inference.sh  /tmp/cfg --raport_file=/tmp/summary.json
+    count=$(($count + 1))
+    echo "INFERENCE_LOOP_COUNT=$count"
+    if [[ "$INFERENCE_TIME" ]]; then
+      minutes=$((SECONDS/60))
+      if [[ "$minutes" -ge "$INFERENCE_TIME" ]]; then
+        echo "Inference ran for ${minutes}, bailing out."
+        break
+      fi
+    fi
+  done
+else
+  RESULTS_DIR=/tmp/results
+  mkdir "$RESULTS_DIR"
+  bash examples/SSD320_FP16_inference.sh  "$RESULTS_DIR" /tmp/cfg --raport_file=/tmp/summary.json
+  cat "${RESULTS_DIR}/train_log" || true
+fi
+
+        Command:
+          bash
+          -ceuxo
+          pipefail
+        Env:
+          Name:   SRC_CONFIG_DIR
+          Value:  /workdir/models/research/configs/
+          Name:   STORAGE_DIR
+          Value:  /storage
+          Name:   INFERENCE_TIME
+          Value:  
+          Name:   reporterGatewayURL
+          Value:  runai-prometheus-pushgateway.runai.svc.cluster.local:9091
+          Name:   REPORTER_GATEWAY_URL
+          Value:  runai-prometheus-pushgateway.runai.svc.cluster.local:9091
+          Name:   podUUID
+          Value From:
+            Field Ref:
+              Field Path:  metadata.uid
+          Name:            POD_UUID
+          Value From:
+            Field Ref:
+              Field Path:  metadata.uid
+          Name:            NODE_NAME
+          Value From:
+            Field Ref:
+              Field Path:  spec.nodeName
+        Image:             quay.io/openshift-psap/nvidiadl-ssd-training-benchmark:ssd
+        Name:              ctr
+        Resources:
+          Limits:
+          Requests:
+            Cpu:     100m
+            Memory:  10485760
+        Volume Mounts:
+          Mount Path:  /storage/
+          Name:        storage-volume
+      Node Selector:
+        nvidia.com/gpu.present:  true
+      Restart Policy:            Never
+      Scheduler Name:            runai-scheduler
+      Volumes:
+        Name:  storage-volume
+        Persistent Volume Claim:
+          Claim Name:  benchmarking-bert-dataset
+Status:
+  Active:      1
+  Start Time:  2022-04-21T12:33:20Z
+Events:
+  Type    Reason            Age   From                Message
+  ----    ------            ----  ----                -------
+  Normal  SuccessfulCreate  16m   runaijobcontroller  Created pod: ssd-inference-2-0-0

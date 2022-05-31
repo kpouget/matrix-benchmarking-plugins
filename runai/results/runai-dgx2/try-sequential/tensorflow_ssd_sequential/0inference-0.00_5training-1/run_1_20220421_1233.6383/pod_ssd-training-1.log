@@ -1,0 +1,29 @@
++ test -f /etc/shinit_v2
++ source /etc/shinit_v2
++++ sed -n 's/^NVRM.*Kernel Module *\([^() ]*\).*$/\1/p' /proc/driver/nvidia/version
++++ sed 's/^$/unknown/'
+++ NV_DRIVER_VERS=
+++ export _CUDA_COMPAT_PATH=/usr/local/cuda/compat
+++ _CUDA_COMPAT_PATH=/usr/local/cuda/compat
++++ hostname
+++ _CUDA_COMPAT_CHECKFILE=/usr/local/cuda/compat/..ssd-training-1.checked
+++ _CUDA_COMPAT_REALLIB=/usr/local/cuda/compat/lib.real
+++ _CUDA_COMPAT_SYMLINK=/usr/local/cuda/compat/lib
+++ '[' -n '' -a -e /dev/nvidiactl -a '!' -e /usr/local/cuda/compat/..ssd-training-1.checked ']'
+++ unset _CUDA_COMPAT_CHECKFILE
+++ unset _CUDA_COMPAT_REALLIB
+++ unset _CUDA_COMPAT_SYMLINK
+/etc/bash.bashrc: line 9: PS1: unbound variable
++ mkdir /tmp/cfg
++ cp -v /workdir/models/research/configs//ssd320_bench.config /workdir/models/research/configs//ssd320_full_1gpus.config /workdir/models/research/configs//ssd320_full_4gpus.config /workdir/models/research/configs//ssd320_full_8gpus.config /tmp/cfg
+'/workdir/models/research/configs//ssd320_bench.config' -> '/tmp/cfg/ssd320_bench.config'
+'/workdir/models/research/configs//ssd320_full_1gpus.config' -> '/tmp/cfg/ssd320_full_1gpus.config'
+'/workdir/models/research/configs//ssd320_full_4gpus.config' -> '/tmp/cfg/ssd320_full_4gpus.config'
+'/workdir/models/research/configs//ssd320_full_8gpus.config' -> '/tmp/cfg/ssd320_full_8gpus.config'
++ sed -i 's|/data/coco2017_tfrecords|/storage/coco2017_tfrecords|' /tmp/cfg/ssd320_bench.config /tmp/cfg/ssd320_full_1gpus.config /tmp/cfg/ssd320_full_4gpus.config /tmp/cfg/ssd320_full_8gpus.config
++ sed -i 's|/checkpoints|/storage/checkpoints|' /tmp/cfg/ssd320_bench.config /tmp/cfg/ssd320_full_1gpus.config /tmp/cfg/ssd320_full_4gpus.config /tmp/cfg/ssd320_full_8gpus.config
++ [[ training == \i\n\f\e\r\e\n\c\e ]]
++ RESULTS_DIR=/tmp/results
++ mkdir /tmp/results
++ bash examples/SSD320_FP16_1GPU_BENCHMARK.sh /tmp/results /tmp/cfg --raport_file=/tmp/summary.json
+Single GPU mixed precision training performance: 148.85312000000002 img/s

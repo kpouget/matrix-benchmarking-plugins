@@ -1,0 +1,121 @@
+Name:         ssd-inference-1
+Namespace:    matrix-benchmarking
+Priority:     0
+Node:         perfdgx2.perf.lab.eng.bos.redhat.com/10.16.30.12
+Start Time:   Fri, 22 Apr 2022 15:05:21 +0200
+Labels:       job-name=ssd-inference-1
+              matrix-benchmarking=true
+              runai-pod-job-mutated=true
+Annotations:  k8s.v1.cni.cncf.io/network-status:
+                [{
+                    "name": "openshift-sdn",
+                    "interface": "eth0",
+                    "ips": [
+                        "10.128.0.132"
+                    ],
+                    "default": true,
+                    "dns": {}
+                }]
+              k8s.v1.cni.cncf.io/networks-status:
+                [{
+                    "name": "openshift-sdn",
+                    "interface": "eth0",
+                    "ips": [
+                        "10.128.0.132"
+                    ],
+                    "default": true,
+                    "dns": {}
+                }]
+              openshift.io/scc: anyuid
+Status:       Failed
+IP:           10.128.0.132
+IPs:
+  IP:  10.128.0.132
+Containers:
+  cnt:
+    Container ID:  cri-o://8059edd7dab3cbf8c11f3921b5aa8ca0ca3702c3ffaa0e6b9f7a89a95ccc36ec
+    Image:         quay.io/openshift-psap/nvidiadl-ssd-training-benchmark:ssd
+    Image ID:      quay.io/openshift-psap/nvidiadl-ssd-training-benchmark@sha256:0177e9f4174b98ed1b79a952b2bdf60be6c0a1d7d534b46e6f34a6012db4e52f
+    Port:          <none>
+    Host Port:     <none>
+    Command:
+      bash
+      -ceuxo
+      pipefail
+    Args:
+      mkdir /tmp/cfg
+      cp -v "$SRC_CONFIG_DIR"/* /tmp/cfg
+      sed -i 's|/data/coco2017_tfrecords|'$STORAGE_DIR'/coco2017_tfrecords|' /tmp/cfg/*
+      sed -i 's|/checkpoints|'$STORAGE_DIR'/checkpoints|' /tmp/cfg/*
+      nvidia-smi -L
+      if [[ "inference" == "inference" ]]; then
+        count=0
+        SECONDS=0 # Bash special var
+        while true; do
+          bash examples/SSD320_FP16_inference.sh  /tmp/cfg --raport_file=/tmp/summary.json
+          count=$(($count + 1))
+          echo "INFERENCE_LOOP_COUNT=$count"
+          if [[ "$INFERENCE_TIME" ]]; then
+            minutes=$((SECONDS/60))
+            if [[ "$minutes" -ge "$INFERENCE_TIME" ]]; then
+              echo "Inference ran for ${minutes}, bailing out."
+              break
+            fi
+          fi
+        done
+      else
+        RESULTS_DIR=/tmp/results
+        mkdir "$RESULTS_DIR"
+        bash examples/SSD320_FP16_inference.sh  "$RESULTS_DIR" /tmp/cfg --raport_file=/tmp/summary.json
+        cat "${RESULTS_DIR}/train_log" || true
+      fi
+      
+    State:          Terminated
+      Reason:       Error
+      Exit Code:    137
+      Started:      Fri, 22 Apr 2022 15:05:23 +0200
+      Finished:     Fri, 22 Apr 2022 15:33:21 +0200
+    Ready:          False
+    Restart Count:  0
+    Limits:
+      nvidia.com/gpu:  1
+    Requests:
+      nvidia.com/gpu:  1
+    Environment:
+      SRC_CONFIG_DIR:  /workdir/models/research/configs/
+      STORAGE_DIR:     /storage
+      INFERENCE_TIME:  
+    Mounts:
+      /storage/ from storage-volume (rw)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-86psn (ro)
+Conditions:
+  Type              Status
+  Initialized       True 
+  Ready             False 
+  ContainersReady   False 
+  PodScheduled      True 
+Volumes:
+  storage-volume:
+    Type:       PersistentVolumeClaim (a reference to a PersistentVolumeClaim in the same namespace)
+    ClaimName:  benchmarking-bert-dataset
+    ReadOnly:   false
+  kube-api-access-86psn:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    ConfigMapOptional:       <nil>
+    DownwardAPI:             true
+    ConfigMapName:           openshift-service-ca.crt
+    ConfigMapOptional:       <nil>
+QoS Class:                   BestEffort
+Node-Selectors:              nvidia.com/gpu.present=true
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type    Reason          Age   From               Message
+  ----    ------          ----  ----               -------
+  Normal  Scheduled       28m   default-scheduler  Successfully assigned matrix-benchmarking/ssd-inference-1 to perfdgx2.perf.lab.eng.bos.redhat.com
+  Normal  AddedInterface  28m   multus             Add eth0 [10.128.0.132/23] from openshift-sdn
+  Normal  Pulled          28m   kubelet            Container image "quay.io/openshift-psap/nvidiadl-ssd-training-benchmark:ssd" already present on machine
+  Normal  Created         28m   kubelet            Created container cnt
+  Normal  Started         28m   kubelet            Started container cnt

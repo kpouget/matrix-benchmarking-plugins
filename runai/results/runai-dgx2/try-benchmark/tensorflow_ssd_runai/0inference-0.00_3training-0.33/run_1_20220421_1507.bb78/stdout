@@ -1,0 +1,41 @@
+run ==> 1
+framework ==> tensorflow
+model ==> ssd
+fp ==> 16
+partionner ==> runai
+expe ==> try-benchmark
+inference_count ==> 0
+inference_fraction ==> 0.00
+training_count ==> 3
+training_fraction ==> 0.33
+
+Running non-interactively.
+Using the current directory to store the test artifacts (/home/kevin/openshift/matrix-benchmarking/matrix_benchmarking/workloads.workdirs/runai/runai/results/runai-dgx2/try-benchmark/tensorflow_ssd_runai/0inference-0.00_3training-0.33/run_1_20220421_1507.bb78).
+Thu Apr 21 03:07:50 PM CEST 2022
+Deleting RunAIJobs ...
+No resources found
+Deleting Pods ...
+No resources found
+Preparing Prometheus ...
+:/home/kevin/openshift/matrix-benchmarking
+Waiting for Run.AI to create the pod for 'runaijob.run.ai/ssd-training-1' ...
+Done, found pod pod/ssd-training-1-0-0
+Waiting for Run.AI to create the pod for 'runaijob.run.ai/ssd-training-2' ...
+Done, found pod pod/ssd-training-2-0-0
+Waiting for Run.AI to create the pod for 'runaijob.run.ai/ssd-training-3' ...
+Done, found pod pod/ssd-training-3-0-0
+Waiting for the completion of the training pods ...  pod/ssd-training-1-0-0 pod/ssd-training-2-0-0 pod/ssd-training-3-0-0
+Thu Apr 21 03:09:07 PM CEST 2022 pod/ssd-training-1-0-0 Running
+Thu Apr 21 03:30:45 PM CEST 2022 pod/ssd-training-1-0-0 Succeeded
+Pod pod/ssd-training-1-0-0 is done (Succeeded).
+Thu Apr 21 03:30:56 PM CEST 2022 pod/ssd-training-2-0-0 Succeeded
+Pod pod/ssd-training-2-0-0 is done (Succeeded).
+Thu Apr 21 03:31:07 PM CEST 2022 pod/ssd-training-3-0-0 Succeeded
+Pod pod/ssd-training-3-0-0 is done (Succeeded).
+All the training pods have completed their execution.
+Collecting Prometheus database ...
+runaijob.run.ai "ssd-training-1" deleted
+runaijob.run.ai "ssd-training-2" deleted
+runaijob.run.ai "ssd-training-3" deleted
+Status: 
+All good.

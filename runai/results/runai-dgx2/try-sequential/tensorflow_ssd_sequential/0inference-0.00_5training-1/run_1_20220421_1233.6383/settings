@@ -1,0 +1,10 @@
+run=1
+framework=tensorflow
+model=ssd
+fp=16
+partionner=sequential
+training_count=5
+training_fraction=1
+inference_count=0
+inference_fraction=0.00
+

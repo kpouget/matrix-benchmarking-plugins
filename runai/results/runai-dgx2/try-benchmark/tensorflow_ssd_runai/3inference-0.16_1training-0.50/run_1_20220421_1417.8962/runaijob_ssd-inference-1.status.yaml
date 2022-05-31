@@ -1,0 +1,116 @@
+apiVersion: run.ai/v1
+kind: RunaiJob
+metadata:
+  annotations:
+    runai-calculated-status: Running
+    runai-current-allocated-gpus: "0.160"
+    runai-current-allocated-gpus-memory: "5488"
+    runai-current-allocated-vmgpus: "0.000"
+    runai-current-requested-gpus: "0.160"
+    runai-current-requested-gpus-memory: "0"
+    runai-pending-pods: "0"
+    runai-podgroup-requested-gpus: "0.160"
+    runai-podgroup-requested-gpus-memory: "0"
+    runai-running-pods: "1"
+    runai-total-requested-gpus: "0.160"
+    runai-total-requested-gpus-memory: "0"
+    runai-used-nodes: perfdgx2.perf.lab.eng.bos.redhat.com
+  creationTimestamp: "2022-04-21T12:18:18Z"
+  generation: 1
+  labels:
+    matrix-benchmarking: "true"
+    matrix-benchmarking-mode: inference
+    priorityClassName: build
+    project: hello
+  name: ssd-inference-1
+  namespace: matrix-benchmarking
+  resourceVersion: "9100334"
+  uid: e60ae4b7-1727-430f-9211-5411f6778016
+spec:
+  template:
+    metadata:
+      annotations:
+        gpu-fraction: "0.160000"
+      labels:
+        job-name: ssd-inference-1
+        matrix-benchmarking: "true"
+        project: hello
+        user: admin
+    spec:
+      containers:
+      - args:
+        - |
+          mkdir /tmp/cfg
+          cp -v "$SRC_CONFIG_DIR"/* /tmp/cfg
+          sed -i 's|/data/coco2017_tfrecords|'$STORAGE_DIR'/coco2017_tfrecords|' /tmp/cfg/*
+          sed -i 's|/checkpoints|'$STORAGE_DIR'/checkpoints|' /tmp/cfg/*
+
+          if [[ "inference" == "inference" ]]; then
+            count=0
+            SECONDS=0 # Bash special var
+            while true; do
+              bash examples/SSD320_FP16_inference.sh  /tmp/cfg --raport_file=/tmp/summary.json
+              count=$(($count + 1))
+              echo "INFERENCE_LOOP_COUNT=$count"
+              if [[ "$INFERENCE_TIME" ]]; then
+                minutes=$((SECONDS/60))
+                if [[ "$minutes" -ge "$INFERENCE_TIME" ]]; then
+                  echo "Inference ran for ${minutes}, bailing out."
+                  break
+                fi
+              fi
+            done
+          else
+            RESULTS_DIR=/tmp/results
+            mkdir "$RESULTS_DIR"
+            bash examples/SSD320_FP16_inference.sh  "$RESULTS_DIR" /tmp/cfg --raport_file=/tmp/summary.json
+            cat "${RESULTS_DIR}/train_log" || true
+          fi
+        command:
+        - bash
+        - -ceuxo
+        - pipefail
+        env:
+        - name: SRC_CONFIG_DIR
+          value: /workdir/models/research/configs/
+        - name: STORAGE_DIR
+          value: /storage
+        - name: INFERENCE_TIME
+          value: ""
+        - name: reporterGatewayURL
+          value: runai-prometheus-pushgateway.runai.svc.cluster.local:9091
+        - name: REPORTER_GATEWAY_URL
+          value: runai-prometheus-pushgateway.runai.svc.cluster.local:9091
+        - name: podUUID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.uid
+        - name: POD_UUID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.uid
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        image: quay.io/openshift-psap/nvidiadl-ssd-training-benchmark:ssd
+        name: ctr
+        resources:
+          limits: {}
+          requests:
+            cpu: 160m
+            memory: "16777216"
+        volumeMounts:
+        - mountPath: /storage/
+          name: storage-volume
+      nodeSelector:
+        nvidia.com/gpu.present: "true"
+      restartPolicy: Never
+      schedulerName: runai-scheduler
+      volumes:
+      - name: storage-volume
+        persistentVolumeClaim:
+          claimName: benchmarking-bert-dataset
+status:
+  active: 1
+  startTime: "2022-04-21T12:18:18Z"

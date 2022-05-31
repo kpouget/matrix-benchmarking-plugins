@@ -1,0 +1,112 @@
+Name:         ssd-training-4
+Namespace:    matrix-benchmarking
+Priority:     0
+Node:         perfdgx2.perf.lab.eng.bos.redhat.com/10.16.30.12
+Start Time:   Thu, 21 Apr 2022 13:04:40 +0200
+Labels:       job-name=ssd-training-4
+              matrix-benchmarking=true
+              runai-pod-job-mutated=true
+Annotations:  k8s.v1.cni.cncf.io/network-status:
+                [{
+                    "name": "openshift-sdn",
+                    "interface": "eth0",
+                    "ips": [
+                        "10.128.0.201"
+                    ],
+                    "default": true,
+                    "dns": {}
+                }]
+              k8s.v1.cni.cncf.io/networks-status:
+                [{
+                    "name": "openshift-sdn",
+                    "interface": "eth0",
+                    "ips": [
+                        "10.128.0.201"
+                    ],
+                    "default": true,
+                    "dns": {}
+                }]
+              openshift.io/scc: anyuid
+Status:       Succeeded
+IP:           10.128.0.201
+IPs:
+  IP:  10.128.0.201
+Containers:
+  cnt:
+    Container ID:  cri-o://77c0d7bfd904770fc5cdfb9f9b467a390934a7892e871751a728f9a36be6ecb0
+    Image:         quay.io/openshift-psap/nvidiadl-ssd-training-benchmark:ssd
+    Image ID:      quay.io/openshift-psap/nvidiadl-ssd-training-benchmark@sha256:0177e9f4174b98ed1b79a952b2bdf60be6c0a1d7d534b46e6f34a6012db4e52f
+    Port:          <none>
+    Host Port:     <none>
+    Command:
+      bash
+      -ceuxo
+      pipefail
+    Args:
+      mkdir /tmp/cfg
+      cp -v "$SRC_CONFIG_DIR"/* /tmp/cfg
+      sed -i 's|/data/coco2017_tfrecords|'$STORAGE_DIR'/coco2017_tfrecords|' /tmp/cfg/*
+      sed -i 's|/checkpoints|'$STORAGE_DIR'/checkpoints|' /tmp/cfg/*
+      
+      if [[ "training" == "inference" ]]; then
+        LOOP_COUNT=5
+        for i in $(seq $LOOP_COUNT); do
+          echo "Starting loop $i/$LOOP_COUNT"
+          bash examples/SSD320_FP16_1GPU_BENCHMARK.sh /tmp/cfg --raport_file=/tmp/summary.json
+          echo "Done with loop $i/$LOOP_COUNT"
+        done
+      else
+        RESULTS_DIR=/tmp/results
+        mkdir "$RESULTS_DIR"
+        bash examples/SSD320_FP16_1GPU_BENCHMARK.sh "$RESULTS_DIR" /tmp/cfg --raport_file=/tmp/summary.json
+      fi
+      
+    State:          Terminated
+      Reason:       Completed
+      Exit Code:    0
+      Started:      Thu, 21 Apr 2022 13:04:43 +0200
+      Finished:     Thu, 21 Apr 2022 13:14:53 +0200
+    Ready:          False
+    Restart Count:  0
+    Limits:
+      nvidia.com/gpu:  1
+    Requests:
+      nvidia.com/gpu:  1
+    Environment:
+      SRC_CONFIG_DIR:  /workdir/models/research/configs/
+      STORAGE_DIR:     /storage
+      INFERENCE_TIME:  
+    Mounts:
+      /storage/ from storage-volume (rw)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-52mw6 (ro)
+Conditions:
+  Type              Status
+  Initialized       True 
+  Ready             False 
+  ContainersReady   False 
+  PodScheduled      True 
+Volumes:
+  storage-volume:
+    Type:       PersistentVolumeClaim (a reference to a PersistentVolumeClaim in the same namespace)
+    ClaimName:  benchmarking-bert-dataset
+    ReadOnly:   false
+  kube-api-access-52mw6:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    ConfigMapOptional:       <nil>
+    DownwardAPI:             true
+    ConfigMapName:           openshift-service-ca.crt
+    ConfigMapOptional:       <nil>
+QoS Class:                   BestEffort
+Node-Selectors:              nvidia.com/gpu.present=true
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type     Reason            Age                 From               Message
+  ----     ------            ----                ----               -------
+  Warning  FailedScheduling  21m (x36 over 52m)  default-scheduler  0/1 nodes are available: 1 Insufficient nvidia.com/gpu.
+  Normal   AddedInterface    21m                 multus             Add eth0 [10.128.0.201/23] from openshift-sdn
+  Normal   Pulled            21m                 kubelet            Container image "quay.io/openshift-psap/nvidiadl-ssd-training-benchmark:ssd" already present on machine
+  Normal   Created           21m                 kubelet            Created container cnt
+  Normal   Started           21m                 kubelet            Started container cnt

@@ -1,0 +1,48 @@
+run ==> 1
+framework ==> tensorflow
+model ==> ssd
+fp ==> 16
+partionner ==> runai
+expe ==> try-benchmark
+inference_count ==> 5
+inference_fraction ==> 0.10
+training_count ==> 1
+training_fraction ==> 0.50
+
+Running non-interactively.
+Using the current directory to store the test artifacts (/home/kevin/openshift/matrix-benchmarking/matrix_benchmarking/workloads.workdirs/runai/runai/results/runai-dgx2/try-benchmark/tensorflow_ssd_runai/5inference-0.10_1training-0.50/run_1_20220421_1432.7a09).
+Thu Apr 21 02:32:01 PM CEST 2022
+Deleting RunAIJobs ...
+No resources found
+Deleting Pods ...
+pod "ssd-inference-1-0-0" deleted
+pod "ssd-inference-2-0-0" deleted
+pod "ssd-inference-3-0-0" deleted
+Preparing Prometheus ...
+:/home/kevin/openshift/matrix-benchmarking
+Waiting for Run.AI to create the pod for 'runaijob.run.ai/ssd-inference-1' ...
+Done, found pod pod/ssd-inference-1-0-0
+Waiting for Run.AI to create the pod for 'runaijob.run.ai/ssd-inference-2' ...
+Done, found pod pod/ssd-inference-2-0-0
+Waiting for Run.AI to create the pod for 'runaijob.run.ai/ssd-inference-3' ...
+Done, found pod pod/ssd-inference-3-0-0
+Waiting for Run.AI to create the pod for 'runaijob.run.ai/ssd-inference-4' ...
+Done, found pod pod/ssd-inference-4-0-0
+Waiting for Run.AI to create the pod for 'runaijob.run.ai/ssd-inference-5' ...
+Done, found pod pod/ssd-inference-5-0-0
+Waiting for Run.AI to create the pod for 'runaijob.run.ai/ssd-training-1' ...
+Done, found pod pod/ssd-training-1-0-0
+Waiting for the completion of the training pods ...  pod/ssd-training-1-0-0
+Thu Apr 21 02:33:53 PM CEST 2022 pod/ssd-training-1-0-0 Running
+Thu Apr 21 02:48:46 PM CEST 2022 pod/ssd-training-1-0-0 Succeeded
+Pod pod/ssd-training-1-0-0 is done (Succeeded).
+All the training pods have completed their execution.
+Collecting Prometheus database ...
+runaijob.run.ai "ssd-inference-1" deleted
+runaijob.run.ai "ssd-inference-2" deleted
+runaijob.run.ai "ssd-inference-3" deleted
+runaijob.run.ai "ssd-inference-4" deleted
+runaijob.run.ai "ssd-inference-5" deleted
+runaijob.run.ai "ssd-training-1" deleted
+Status: 
+All good.

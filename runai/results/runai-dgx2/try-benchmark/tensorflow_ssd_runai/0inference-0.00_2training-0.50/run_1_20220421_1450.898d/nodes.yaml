@@ -1,0 +1,518 @@
+api_version: v1
+items:
+- api_version: null
+  kind: null
+  metadata:
+    annotations:
+      machineconfiguration.openshift.io/controlPlaneTopology: SingleReplica
+      machineconfiguration.openshift.io/currentConfig: rendered-master-e571df1505314aa1e147a6fcb35c8110
+      machineconfiguration.openshift.io/desiredConfig: rendered-master-e571df1505314aa1e147a6fcb35c8110
+      machineconfiguration.openshift.io/reason: ''
+      machineconfiguration.openshift.io/state: Done
+      nfd.node.kubernetes.io/extended-resources: ''
+      nfd.node.kubernetes.io/feature-labels: cpu-cpuid.ADX,cpu-cpuid.AESNI,cpu-cpuid.AVX,cpu-cpuid.AVX2,cpu-cpuid.AVX512BW,cpu-cpuid.AVX512CD,cpu-cpuid.AVX512DQ,cpu-cpuid.AVX512F,cpu-cpuid.AVX512VL,cpu-cpuid.FMA3,cpu-cpuid.HLE,cpu-cpuid.IBPB,cpu-cpuid.MPX,cpu-cpuid.RTM,cpu-cpuid.STIBP,cpu-cpuid.VMX,cpu-cstate.enabled,cpu-hardware_multithreading,cpu-pstate.scaling_governor,cpu-pstate.status,cpu-pstate.turbo,cpu-rdt.RDTCMT,cpu-rdt.RDTL3CA,cpu-rdt.RDTMBA,cpu-rdt.RDTMBM,cpu-rdt.RDTMON,custom-rdma.available,custom-rdma.capable,kernel-config.NO_HZ,kernel-config.NO_HZ_FULL,kernel-selinux.enabled,kernel-version.full,kernel-version.major,kernel-version.minor,kernel-version.revision,memory-numa,nvidia.com/cuda.driver.major,nvidia.com/cuda.driver.minor,nvidia.com/cuda.driver.rev,nvidia.com/cuda.runtime.major,nvidia.com/cuda.runtime.minor,nvidia.com/gfd.timestamp,nvidia.com/gpu.compute.major,nvidia.com/gpu.compute.minor,nvidia.com/gpu.count,nvidia.com/gpu.family,nvidia.com/gpu.machine,nvidia.com/gpu.memory,nvidia.com/gpu.product,nvidia.com/mig.strategy,pci-10de.present,pci-15b3.present,pci-1a03.present,pci-8086.present,storage-nonrotationaldisk,system-os_release.ID,system-os_release.OSTREE_VERSION,system-os_release.RHEL_VERSION,system-os_release.VERSION_ID,system-os_release.VERSION_ID.major,system-os_release.VERSION_ID.minor
+      nfd.node.kubernetes.io/master.version: undefined
+      nfd.node.kubernetes.io/worker.version: undefined
+      volumes.kubernetes.io/controller-managed-attach-detach: 'true'
+    cluster_name: null
+    creation_timestamp: 2022-04-01 09:48:26+00:00
+    deletion_grace_period_seconds: null
+    deletion_timestamp: null
+    finalizers: null
+    generate_name: null
+    generation: null
+    labels:
+      beta.kubernetes.io/arch: amd64
+      beta.kubernetes.io/os: linux
+      feature.node.kubernetes.io/cpu-cpuid.ADX: 'true'
+      feature.node.kubernetes.io/cpu-cpuid.AESNI: 'true'
+      feature.node.kubernetes.io/cpu-cpuid.AVX: 'true'
+      feature.node.kubernetes.io/cpu-cpuid.AVX2: 'true'
+      feature.node.kubernetes.io/cpu-cpuid.AVX512BW: 'true'
+      feature.node.kubernetes.io/cpu-cpuid.AVX512CD: 'true'
+      feature.node.kubernetes.io/cpu-cpuid.AVX512DQ: 'true'
+      feature.node.kubernetes.io/cpu-cpuid.AVX512F: 'true'
+      feature.node.kubernetes.io/cpu-cpuid.AVX512VL: 'true'
+      feature.node.kubernetes.io/cpu-cpuid.FMA3: 'true'
+      feature.node.kubernetes.io/cpu-cpuid.HLE: 'true'
+      feature.node.kubernetes.io/cpu-cpuid.IBPB: 'true'
+      feature.node.kubernetes.io/cpu-cpuid.MPX: 'true'
+      feature.node.kubernetes.io/cpu-cpuid.RTM: 'true'
+      feature.node.kubernetes.io/cpu-cpuid.STIBP: 'true'
+      feature.node.kubernetes.io/cpu-cpuid.VMX: 'true'
+      feature.node.kubernetes.io/cpu-cstate.enabled: 'true'
+      feature.node.kubernetes.io/cpu-hardware_multithreading: 'true'
+      feature.node.kubernetes.io/cpu-pstate.scaling_governor: performance
+      feature.node.kubernetes.io/cpu-pstate.status: active
+      feature.node.kubernetes.io/cpu-pstate.turbo: 'true'
+      feature.node.kubernetes.io/cpu-rdt.RDTCMT: 'true'
+      feature.node.kubernetes.io/cpu-rdt.RDTL3CA: 'true'
+      feature.node.kubernetes.io/cpu-rdt.RDTMBA: 'true'
+      feature.node.kubernetes.io/cpu-rdt.RDTMBM: 'true'
+      feature.node.kubernetes.io/cpu-rdt.RDTMON: 'true'
+      feature.node.kubernetes.io/custom-rdma.available: 'true'
+      feature.node.kubernetes.io/custom-rdma.capable: 'true'
+      feature.node.kubernetes.io/kernel-config.NO_HZ: 'true'
+      feature.node.kubernetes.io/kernel-config.NO_HZ_FULL: 'true'
+      feature.node.kubernetes.io/kernel-selinux.enabled: 'true'
+      feature.node.kubernetes.io/kernel-version.full: 4.18.0-305.34.2.el8_4.x86_64
+      feature.node.kubernetes.io/kernel-version.major: '4'
+      feature.node.kubernetes.io/kernel-version.minor: '18'
+      feature.node.kubernetes.io/kernel-version.revision: '0'
+      feature.node.kubernetes.io/memory-numa: 'true'
+      feature.node.kubernetes.io/pci-10de.present: 'true'
+      feature.node.kubernetes.io/pci-15b3.present: 'true'
+      feature.node.kubernetes.io/pci-1a03.present: 'true'
+      feature.node.kubernetes.io/pci-8086.present: 'true'
+      feature.node.kubernetes.io/storage-nonrotationaldisk: 'true'
+      feature.node.kubernetes.io/system-os_release.ID: rhcos
+      feature.node.kubernetes.io/system-os_release.OSTREE_VERSION: 410.84.202202251620-0
+      feature.node.kubernetes.io/system-os_release.RHEL_VERSION: '8.4'
+      feature.node.kubernetes.io/system-os_release.VERSION_ID: '4.10'
+      feature.node.kubernetes.io/system-os_release.VERSION_ID.major: '4'
+      feature.node.kubernetes.io/system-os_release.VERSION_ID.minor: '10'
+      kubernetes.io/arch: amd64
+      kubernetes.io/hostname: perfdgx2.perf.lab.eng.bos.redhat.com
+      kubernetes.io/os: linux
+      node-role.kubernetes.io/master: ''
+      node-role.kubernetes.io/runai-system: ''
+      node-role.kubernetes.io/worker: ''
+      node.openshift.io/os_id: rhcos
+      nvidia.com/cuda.driver.major: '510'
+      nvidia.com/cuda.driver.minor: '47'
+      nvidia.com/cuda.driver.rev: '03'
+      nvidia.com/cuda.runtime.major: '11'
+      nvidia.com/cuda.runtime.minor: '6'
+      nvidia.com/gfd.timestamp: '1649669629'
+      nvidia.com/gpu.compute.major: '7'
+      nvidia.com/gpu.compute.minor: '0'
+      nvidia.com/gpu.count: '16'
+      nvidia.com/gpu.deploy.container-toolkit: 'true'
+      nvidia.com/gpu.deploy.dcgm: 'true'
+      nvidia.com/gpu.deploy.dcgm-exporter: runai
+      nvidia.com/gpu.deploy.device-plugin: 'true'
+      nvidia.com/gpu.deploy.driver: 'true'
+      nvidia.com/gpu.deploy.gpu-feature-discovery: 'true'
+      nvidia.com/gpu.deploy.node-status-exporter: 'true'
+      nvidia.com/gpu.deploy.nvsm: ''
+      nvidia.com/gpu.deploy.operator-validator: 'true'
+      nvidia.com/gpu.family: volta
+      nvidia.com/gpu.machine: NVIDIA-DGX-2
+      nvidia.com/gpu.memory: '32768'
+      nvidia.com/gpu.present: 'true'
+      nvidia.com/gpu.product: Tesla-V100-SXM3-32GB
+      nvidia.com/mig.strategy: single
+    managed_fields:
+    - api_version: v1
+      fields_type: FieldsV1
+      fields_v1:
+        f:metadata:
+          f:labels:
+            f:nvidia.com/gpu.deploy.container-toolkit: {}
+            f:nvidia.com/gpu.deploy.dcgm: {}
+            f:nvidia.com/gpu.deploy.device-plugin: {}
+            f:nvidia.com/gpu.deploy.driver: {}
+            f:nvidia.com/gpu.deploy.gpu-feature-discovery: {}
+            f:nvidia.com/gpu.deploy.node-status-exporter: {}
+            f:nvidia.com/gpu.deploy.operator-validator: {}
+            f:nvidia.com/gpu.present: {}
+      manager: gpu-operator
+      operation: Update
+      time: 2022-04-01 12:41:54+00:00
+    - api_version: v1
+      fields_type: FieldsV1
+      fields_v1:
+        f:metadata:
+          f:annotations:
+            f:machineconfiguration.openshift.io/controlPlaneTopology: {}
+            f:machineconfiguration.openshift.io/desiredConfig: {}
+          f:labels:
+            f:node-role.kubernetes.io/worker: {}
+      manager: machine-config-controller
+      operation: Update
+      time: 2022-04-11 09:25:14+00:00
+    - api_version: v1
+      fields_type: FieldsV1
+      fields_v1:
+        f:status:
+          f:allocatable:
+            f:ephemeral-storage: {}
+          f:capacity:
+            f:nvidia.com/gpu: {}
+          f:conditions:
+            k:{"type":"Ready"}:
+              f:lastTransitionTime: {}
+              f:message: {}
+              f:reason: {}
+              f:status: {}
+          f:nodeInfo:
+            f:bootID: {}
+      manager: Go-http-client
+      operation: Update
+      time: 2022-04-11 09:30:39+00:00
+    - api_version: v1
+      fields_type: FieldsV1
+      fields_v1:
+        f:metadata:
+          f:annotations:
+            f:machineconfiguration.openshift.io/currentConfig: {}
+            f:machineconfiguration.openshift.io/reason: {}
+            f:machineconfiguration.openshift.io/state: {}
+      manager: machine-config-daemon
+      operation: Update
+      time: 2022-04-11 09:31:04+00:00
+    - api_version: v1
+      fields_type: FieldsV1
+      fields_v1:
+        f:metadata:
+          f:annotations:
+            f:nfd.node.kubernetes.io/extended-resources: {}
+            f:nfd.node.kubernetes.io/feature-labels: {}
+            f:nfd.node.kubernetes.io/master.version: {}
+            f:nfd.node.kubernetes.io/worker.version: {}
+          f:labels:
+            f:feature.node.kubernetes.io/cpu-cpuid.ADX: {}
+            f:feature.node.kubernetes.io/cpu-cpuid.AESNI: {}
+            f:feature.node.kubernetes.io/cpu-cpuid.AVX: {}
+            f:feature.node.kubernetes.io/cpu-cpuid.AVX2: {}
+            f:feature.node.kubernetes.io/cpu-cpuid.AVX512BW: {}
+            f:feature.node.kubernetes.io/cpu-cpuid.AVX512CD: {}
+            f:feature.node.kubernetes.io/cpu-cpuid.AVX512DQ: {}
+            f:feature.node.kubernetes.io/cpu-cpuid.AVX512F: {}
+            f:feature.node.kubernetes.io/cpu-cpuid.AVX512VL: {}
+            f:feature.node.kubernetes.io/cpu-cpuid.FMA3: {}
+            f:feature.node.kubernetes.io/cpu-cpuid.HLE: {}
+            f:feature.node.kubernetes.io/cpu-cpuid.IBPB: {}
+            f:feature.node.kubernetes.io/cpu-cpuid.MPX: {}
+            f:feature.node.kubernetes.io/cpu-cpuid.RTM: {}
+            f:feature.node.kubernetes.io/cpu-cpuid.STIBP: {}
+            f:feature.node.kubernetes.io/cpu-cpuid.VMX: {}
+            f:feature.node.kubernetes.io/cpu-cstate.enabled: {}
+            f:feature.node.kubernetes.io/cpu-hardware_multithreading: {}
+            f:feature.node.kubernetes.io/cpu-pstate.scaling_governor: {}
+            f:feature.node.kubernetes.io/cpu-pstate.status: {}
+            f:feature.node.kubernetes.io/cpu-pstate.turbo: {}
+            f:feature.node.kubernetes.io/cpu-rdt.RDTCMT: {}
+            f:feature.node.kubernetes.io/cpu-rdt.RDTL3CA: {}
+            f:feature.node.kubernetes.io/cpu-rdt.RDTMBA: {}
+            f:feature.node.kubernetes.io/cpu-rdt.RDTMBM: {}
+            f:feature.node.kubernetes.io/cpu-rdt.RDTMON: {}
+            f:feature.node.kubernetes.io/custom-rdma.available: {}
+            f:feature.node.kubernetes.io/custom-rdma.capable: {}
+            f:feature.node.kubernetes.io/kernel-config.NO_HZ: {}
+            f:feature.node.kubernetes.io/kernel-config.NO_HZ_FULL: {}
+            f:feature.node.kubernetes.io/kernel-selinux.enabled: {}
+            f:feature.node.kubernetes.io/kernel-version.full: {}
+            f:feature.node.kubernetes.io/kernel-version.major: {}
+            f:feature.node.kubernetes.io/kernel-version.minor: {}
+            f:feature.node.kubernetes.io/kernel-version.revision: {}
+            f:feature.node.kubernetes.io/memory-numa: {}
+            f:feature.node.kubernetes.io/pci-10de.present: {}
+            f:feature.node.kubernetes.io/pci-15b3.present: {}
+            f:feature.node.kubernetes.io/pci-1a03.present: {}
+            f:feature.node.kubernetes.io/pci-8086.present: {}
+            f:feature.node.kubernetes.io/storage-nonrotationaldisk: {}
+            f:feature.node.kubernetes.io/system-os_release.ID: {}
+            f:feature.node.kubernetes.io/system-os_release.OSTREE_VERSION: {}
+            f:feature.node.kubernetes.io/system-os_release.RHEL_VERSION: {}
+            f:feature.node.kubernetes.io/system-os_release.VERSION_ID: {}
+            f:feature.node.kubernetes.io/system-os_release.VERSION_ID.major: {}
+            f:feature.node.kubernetes.io/system-os_release.VERSION_ID.minor: {}
+            f:nvidia.com/cuda.driver.major: {}
+            f:nvidia.com/cuda.driver.minor: {}
+            f:nvidia.com/cuda.driver.rev: {}
+            f:nvidia.com/cuda.runtime.major: {}
+            f:nvidia.com/cuda.runtime.minor: {}
+            f:nvidia.com/gfd.timestamp: {}
+            f:nvidia.com/gpu.compute.major: {}
+            f:nvidia.com/gpu.compute.minor: {}
+            f:nvidia.com/gpu.count: {}
+            f:nvidia.com/gpu.family: {}
+            f:nvidia.com/gpu.machine: {}
+            f:nvidia.com/gpu.memory: {}
+            f:nvidia.com/gpu.product: {}
+            f:nvidia.com/mig.strategy: {}
+      manager: nfd-master
+      operation: Update
+      time: 2022-04-11 09:34:07+00:00
+    - api_version: v1
+      fields_type: FieldsV1
+      fields_v1:
+        f:metadata:
+          f:labels:
+            f:nvidia.com/gpu.deploy.dcgm-exporter: {}
+            f:nvidia.com/gpu.deploy.nvsm: {}
+      manager: kubectl-label
+      operation: Update
+      time: 2022-04-19 08:58:49+00:00
+    - api_version: v1
+      fields_type: FieldsV1
+      fields_v1:
+        f:metadata:
+          f:labels:
+            f:node-role.kubernetes.io/runai-system: {}
+      manager: runai-adm
+      operation: Update
+      time: 2022-04-19 09:05:08+00:00
+    - api_version: v1
+      fields_type: FieldsV1
+      fields_v1:
+        f:status:
+          f:allocatable:
+            f:nvidia.com/gpu: {}
+          f:conditions:
+            k:{"type":"DiskPressure"}:
+              f:lastHeartbeatTime: {}
+            k:{"type":"MemoryPressure"}:
+              f:lastHeartbeatTime: {}
+            k:{"type":"PIDPressure"}:
+              f:lastHeartbeatTime: {}
+            k:{"type":"Ready"}:
+              f:lastHeartbeatTime: {}
+          f:images: {}
+      manager: Go-http-client
+      operation: Update
+      time: 2022-04-19 09:20:22+00:00
+    name: perfdgx2.perf.lab.eng.bos.redhat.com
+    namespace: null
+    owner_references: null
+    resource_version: '9115948'
+    self_link: null
+    uid: 8e13ef2a-4962-406e-b2b4-86c597e4bffc
+  spec:
+    config_source: null
+    external_id: null
+    pod_cid_rs: null
+    pod_cidr: null
+    provider_id: null
+    taints: null
+    unschedulable: null
+  status:
+    addresses:
+    - address: 10.16.30.12
+      type: InternalIP
+    - address: perfdgx2.perf.lab.eng.bos.redhat.com
+      type: Hostname
+    allocatable:
+      cpu: 95500m
+      ephemeral-storage: '863683827102'
+      hugepages-1Gi: '0'
+      hugepages-2Mi: '0'
+      memory: 1582785092Ki
+      nvidia.com/gpu: '16'
+      pods: '250'
+    capacity:
+      cpu: '96'
+      ephemeral-storage: 937156932Ki
+      hugepages-1Gi: '0'
+      hugepages-2Mi: '0'
+      memory: 1583936068Ki
+      nvidia.com/gpu: '16'
+      pods: '250'
+    conditions:
+    - last_heartbeat_time: 2022-04-21 13:06:47+00:00
+      last_transition_time: 2022-04-01 09:48:26+00:00
+      message: kubelet has sufficient memory available
+      reason: KubeletHasSufficientMemory
+      status: 'False'
+      type: MemoryPressure
+    - last_heartbeat_time: 2022-04-21 13:06:47+00:00
+      last_transition_time: 2022-04-01 09:48:26+00:00
+      message: kubelet has no disk pressure
+      reason: KubeletHasNoDiskPressure
+      status: 'False'
+      type: DiskPressure
+    - last_heartbeat_time: 2022-04-21 13:06:47+00:00
+      last_transition_time: 2022-04-01 09:48:26+00:00
+      message: kubelet has sufficient PID available
+      reason: KubeletHasSufficientPID
+      status: 'False'
+      type: PIDPressure
+    - last_heartbeat_time: 2022-04-21 13:06:47+00:00
+      last_transition_time: 2022-04-01 09:58:59+00:00
+      message: kubelet is posting ready status
+      reason: KubeletReady
+      status: 'True'
+      type: Ready
+    config: null
+    daemon_endpoints:
+      kubelet_endpoint:
+        port: 10250
+    images:
+    - names:
+      - quay.io/openshift-psap/nvidiadl-ssd-training-benchmark@sha256:0177e9f4174b98ed1b79a952b2bdf60be6c0a1d7d534b46e6f34a6012db4e52f
+      - quay.io/openshift-psap/nvidiadl-ssd-training-benchmark:ssd
+      size_bytes: 11602190009
+    - names:
+      - image-registry.openshift-image-registry.svc:5000/matrix-benchmarking/aiml@sha256:719f7aed24672bde1993a5d9140165d89c109759f554eb4a67b226974a679765
+      - image-registry.openshift-image-registry.svc:5000/matrix-benchmarking/aiml:bert
+      size_bytes: 11458908501
+    - names:
+      - image-registry.openshift-image-registry.svc@sha256:488c965eb2b23c9c8427b8c37febf50b2d672212b07bd6ca40feb92afc3260a0
+      size_bytes: 11458908484
+    - names:
+      - image-registry.openshift-image-registry.svc@sha256:d2048355b6bb626e82ed3ef200db1c3421aba4b6f101665f9d72d4e78ffd495b
+      size_bytes: 11458902904
+    - names:
+      - image-registry.openshift-image-registry.svc@sha256:95e0016738cb45d2cb1ca174213e0c75f514a46df394d34198715d5cc6972999
+      size_bytes: 11458899291
+    - names:
+      - image-registry.openshift-image-registry.svc@sha256:32bed8421764ab839fe6b09ce19b892f9d6e6cbf55c8c4f26eebde52c0228f1e
+      size_bytes: 11458898746
+    - names:
+      - image-registry.openshift-image-registry.svc:5000/matrix-benchmarking/aiml@sha256:a48b11cd9d64bcba5002e6a19e877f8f12c992c16104a7bc725e5f1777e7cc33
+      size_bytes: 11424325079
+    - names:
+      - image-registry.openshift-image-registry.svc@sha256:61a0e7afd049c80473c0fc4f9066930c2f4fb5b22d78d14fe3ebf863a79d0f2b
+      size_bytes: 11418778321
+    - names:
+      - image-registry.openshift-image-registry.svc@sha256:8535d3bd948c30d454e06177eee25859cbb6d77d9c39006988cf31e1b854769f
+      size_bytes: 11418758352
+    - names:
+      - image-registry.openshift-image-registry.svc@sha256:2bdfa7abf4cec742def100d08a4f1f6d203ac4944f717098f461bd799480d9ea
+      size_bytes: 11418754289
+    - names:
+      - quay.io/egranger/ods-ci@sha256:7fe6d741441a380f2259330d8dcce9f7cb6570ce590ad2c4577370ea93cc800c
+      - quay.io/egranger/ods-ci:v4
+      size_bytes: 1587180103
+    - names:
+      - quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:8705564ee52c5b655529860687f73db78daef4eaa54f5fdd3160cfbfc4aac438
+      size_bytes: 1423279215
+    - names:
+      - quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:170003dfa95ff4ea808b3a4de3d5778c7a0b3c683c6ac606571195222c03043b
+      size_bytes: 1293499414
+    - names:
+      - nvcr.io/nvidia/driver@sha256:37de5e249a18dd48ba851196f858309e495e9f88072cbdb965937b7dc0432041
+      - nvcr.io/nvidia/driver@sha256:d46393d6bd5be020c78e1d45669d2bb3ac8681df13369ddbbbf90740e354c0cf
+      size_bytes: 1140371362
+    - names:
+      - gcr.io/run-ai-prod/agent@sha256:bd3cffec92f35a26bda4b30441763f6d83929c89156a4b18dd0f2d7ba341d9d6
+      - gcr.io/run-ai-prod/agent:0.1.30
+      size_bytes: 1011391363
+    - names:
+      - quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:2b72364802973bb7f6a39e1694b9fc13e84e13a317863d07f9204c7762e9b29f
+      size_bytes: 817789085
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:572b9e715066f24bff757793820b550b014c9e25d144cf87fb93170f291d3aa3
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:e2b0cf2a0f63cf6dc55d0c19e3428abdb9412aa6769d97f23a51f7b65f38ad12
+      - registry.redhat.io/redhat/redhat-operator-index:v4.10
+      size_bytes: 763417209
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:8a81aacee8a195ecdbf989620759a3b80db88fbabc21a303f356091fad9c3973
+      size_bytes: 762827375
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:fcb56b66de260fa092b85aff5a5388eec5539197b51ced3ef581d54b320b4503
+      size_bytes: 762827349
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:139519655d5d28b990e57f8b5a7cb4655eb9a120dc23b5dc72abc5fe18c9752d
+      size_bytes: 761934430
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:c65121610d22c499745521469d747bda7539722ccb9486771f14c2f5350ca8cb
+      size_bytes: 761733732
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:86b25f0ed05a089ed6a05efcb86a272d3c3ca13571059afffef54b8560421f55
+      size_bytes: 761631327
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:94220308cc306cfba6cf2bcba47ad048361ea1e7cc166802d78179b6f5756932
+      size_bytes: 761377362
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:b01ac2c490a8f3abbfabe87bab65b7bdd7715ae1ae19718221ffd17a66a79ca8
+      size_bytes: 761373830
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:5114b5d50070a47248fff4bf08be2203f1d32b25558b4be19c708249dad537b4
+      size_bytes: 755052660
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:b46c0d14c1dc6882e7fade66f86f1584af02f242bc86f9fd9cb1968943d8e31f
+      size_bytes: 755052644
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:fe08d6e90cccd84b9b386277f47d4304e516d465b0b78c7a50a1a39d6639b953
+      size_bytes: 754012272
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:bde7f76ea087711ba535a5d7202ea0852de4f33ae08b031da74cce9d839f5f84
+      size_bytes: 753676407
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:c61319c802837906cb169e328abe5a54bd3034c0864fd576b3f6a96b609d00f4
+      size_bytes: 753447015
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:48b9abb6771a6348ac2b498e3a0cf7a62e4ef4e78168e8d9f7b4970dd2cf6919
+      size_bytes: 752840808
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:f293d4ef8911eafab98ca0e3975c3b87532f0e70e261cf42bc829893b3c0c1e3
+      size_bytes: 752672858
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:b9842a17217b3a84e07241ec4aa006ae57b143da9886e9ceb2a2b26dd7701a69
+      size_bytes: 752623746
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:cdd56cfb103b32c91087e28886d9f68652e19a56b0bcd23db0dd7592113bf7eb
+      size_bytes: 752468068
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:7bfcc04ad2c475ac958c031a9cea3a74316b5e76c700c4fe165c9927f40084c2
+      size_bytes: 752296043
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:d8031ff5b02af40a4a9f9f3a7e57ce770c083b1cf87fb9687aeb77a8ff4cce1d
+      size_bytes: 751222897
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:46076ab65411b8ca940ecf4d8272e7e522e41aed496c611bb3ba53ec4b1cded8
+      size_bytes: 750710881
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:5c53e3627f84db12c001d3418ce966ef5d01352e84dc6885af3912ad5355d789
+      size_bytes: 750698599
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:d001592b2d5a621b60bc7b985494d0acd14305285fa4b6a47e9de258e81e33d8
+      size_bytes: 749793401
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:7432935b6f6617059541e69d52a9581b32ec4ed06c8c40cb6e0f2be275e17aea
+      size_bytes: 749514861
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:80c1847ea99b1a773521de61edb4161994ccbdb8ab5068627a0992c44734ed04
+      size_bytes: 749486182
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:3a7cd991bd298b1d7b59815f56d294be747cea5db644bd740d187d51b0266d05
+      size_bytes: 749219955
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:a55df8ac760c5a9cd18a0d055fbb6661ddf4a0aa9ad6ccc6b0be491c995b7c06
+      size_bytes: 748998763
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:be52672b8ab27957a6f5f007041998b3ca1684d4035bec8e694325169caf2f57
+      size_bytes: 748941396
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:606369907d0c755a8f7ee90ea21ffb26587721d518e613d5cd11c85a56bfc2ee
+      size_bytes: 748785765
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:c3dc7d1b891695428459a29954217928d2ce13e189b122699ca46ce4c0f8bad0
+      size_bytes: 748548179
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:d8b42f3258de5c0201ae39358b229c9eb90af7090aed4000ce5256ad739845b1
+      size_bytes: 748404828
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:c2286d3e067dd4cdf74d38b6ae8b8ecf9c3432113ba67c96efe907d7e385fd88
+      size_bytes: 748236925
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:104ec077edef6f59326e6f4a482f1e931cc37d9f1bffe8c73d20fcc9742486d3
+      size_bytes: 748236880
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:4ecc3b181666ec585bbe6c137c50ad27bf06f2bf9aee314835a19c1eabe24d1b
+      size_bytes: 745564778
+    - names:
+      - registry.redhat.io/redhat/redhat-operator-index@sha256:6db615243f365634c078a9f890c3c3f939715491185482125e80fb3503ec18d8
+      size_bytes: 745282162
+    node_info:
+      architecture: amd64
+      boot_id: 012817f0-f365-476a-89db-176ebe0bb66b
+      container_runtime_version: cri-o://1.23.1-9.rhaos4.10.gitbdffb9a.el8
+      kernel_version: 4.18.0-305.34.2.el8_4.x86_64
+      kube_proxy_version: v1.23.3+e419edf
+      kubelet_version: v1.23.3+e419edf
+      machine_id: b356437d61af484db8c37621023ac326
+      operating_system: linux
+      os_image: Red Hat Enterprise Linux CoreOS 410.84.202202251620-0 (Ootpa)
+      system_uuid: 04018120-bf02-1647-0000-000300000000
+    phase: null
+    volumes_attached: null
+    volumes_in_use: null
+kind: NodeList
+metadata:
+  _continue: null
+  remaining_item_count: null
+  resource_version: '9116153'
+  self_link: null

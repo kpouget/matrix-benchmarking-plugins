@@ -1,0 +1,11 @@
+run=1
+framework=tensorflow
+model=ssd
+fp=16
+partionner=runai
+inference_count=2
+inference_fraction=0.20
+training_count=0
+training_fraction=0.00
+inference_time=20
+

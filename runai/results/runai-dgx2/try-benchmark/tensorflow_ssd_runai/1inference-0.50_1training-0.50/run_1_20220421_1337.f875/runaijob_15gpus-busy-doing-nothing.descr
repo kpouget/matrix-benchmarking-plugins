@@ -1,0 +1,143 @@
+Name:         15gpus-busy-doing-nothing
+Namespace:    matrix-benchmarking
+Labels:       priorityClassName=build
+              project=hello
+Annotations:  runai-calculated-status: Running
+              runai-current-allocated-gpus: 15.000
+              runai-current-allocated-gpus-memory: 514500
+              runai-current-allocated-vmgpus: 0.000
+              runai-current-requested-gpus: 15.000
+              runai-current-requested-gpus-memory: 0
+              runai-pending-pods: 0
+              runai-podgroup-requested-gpus: 15.000
+              runai-podgroup-requested-gpus-memory: 0
+              runai-running-pods: 1
+              runai-total-requested-gpus: 15.000
+              runai-total-requested-gpus-memory: 0
+              runai-used-nodes: perfdgx2.perf.lab.eng.bos.redhat.com
+API Version:  run.ai/v1
+Kind:         RunaiJob
+Metadata:
+  Creation Timestamp:  2022-04-20T20:35:06Z
+  Generation:          1
+  Managed Fields:
+    API Version:  run.ai/v1
+    Fields Type:  FieldsV1
+    fieldsV1:
+      f:metadata:
+        f:annotations:
+          .:
+          f:kubectl.kubernetes.io/last-applied-configuration:
+        f:labels:
+          .:
+          f:priorityClassName:
+      f:spec:
+        .:
+        f:template:
+          .:
+          f:metadata:
+            .:
+            f:labels:
+              .:
+              f:job-name:
+              f:user:
+          f:spec:
+            .:
+            f:containers:
+            f:restartPolicy:
+            f:schedulerName:
+            f:volumes:
+    Manager:      kubectl-client-side-apply
+    Operation:    Update
+    Time:         2022-04-20T20:35:06Z
+    API Version:  run.ai/v1
+    Fields Type:  FieldsV1
+    fieldsV1:
+      f:status:
+        .:
+        f:active:
+        f:startTime:
+    Manager:      runaijob-controller
+    Operation:    Update
+    Subresource:  status
+    Time:         2022-04-20T20:35:06Z
+    API Version:  run.ai/v1
+    Fields Type:  FieldsV1
+    fieldsV1:
+      f:metadata:
+        f:annotations:
+          f:runai-calculated-status:
+          f:runai-current-allocated-gpus:
+          f:runai-current-allocated-gpus-memory:
+          f:runai-current-allocated-vmgpus:
+          f:runai-current-requested-gpus:
+          f:runai-current-requested-gpus-memory:
+          f:runai-pending-pods:
+          f:runai-podgroup-requested-gpus:
+          f:runai-podgroup-requested-gpus-memory:
+          f:runai-running-pods:
+          f:runai-total-requested-gpus:
+          f:runai-total-requested-gpus-memory:
+          f:runai-used-nodes:
+    Manager:         kube-batch
+    Operation:       Update
+    Time:            2022-04-20T20:35:23Z
+  Resource Version:  9041527
+  UID:               ca983587-7711-4518-8ad7-3422bdf443aa
+Spec:
+  Template:
+    Metadata:
+      Annotations:
+      Labels:
+        Job - Name:  15gpus-busy-doing-nothing
+        Project:     hello
+        User:        admin
+    Spec:
+      Containers:
+        Args:
+          sleep +inf
+
+        Command:
+          bash
+          -ceuxo
+          pipefail
+        Env:
+          Name:   SRC_CONFIG_DIR
+          Value:  /workdir/models/research/configs/
+          Name:   reporterGatewayURL
+          Value:  runai-prometheus-pushgateway.runai.svc.cluster.local:9091
+          Name:   REPORTER_GATEWAY_URL
+          Value:  runai-prometheus-pushgateway.runai.svc.cluster.local:9091
+          Name:   podUUID
+          Value From:
+            Field Ref:
+              Field Path:  metadata.uid
+          Name:            POD_UUID
+          Value From:
+            Field Ref:
+              Field Path:  metadata.uid
+          Name:            NODE_NAME
+          Value From:
+            Field Ref:
+              Field Path:  spec.nodeName
+        Image:             quay.io/openshift-psap/nvidiadl-ssd-training-benchmark:ssd
+        Name:              ctr
+        Resources:
+          Limits:
+            nvidia.com/gpu:  15
+          Requests:
+            Cpu:       15000m
+            Memory:    1572864000
+      Restart Policy:  Never
+      Scheduler Name:  runai-scheduler
+      Volumes:
+        Name:  storage-volume
+        Persistent Volume Claim:
+          Claim Name:  benchmarking-bert-dataset
+Status:
+  Active:      1
+  Start Time:  2022-04-20T20:35:06Z
+Events:
+  Type    Reason            Age   From                Message
+  ----    ------            ----  ----                -------
+  Normal  SuccessfulCreate  154m  runaijobcontroller  Created pod: 15gpus-busy-doing-nothing-0-1
