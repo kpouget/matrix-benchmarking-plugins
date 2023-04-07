@@ -9,7 +9,6 @@ from data_science_tidepool_api_python.makedata.tidepool_api import TidepoolAPI
 import json
 import csv
 
-import common
 
 """
      66 basal

@@ -3,10 +3,15 @@ from collections import defaultdict
 
 import plotly.graph_objs as go
 
-import matrix_view
-from common import Matrix
+from matrix_benchmarking.common import Matrix
+from matrix_benchmarking.plotting.table_stats import TableStats
+import matrix_benchmarking.common as common
 
-from store import diabetes
+from . import report
+from . import bolus
+
+report.register()
+bolus.register()
 
 YOTA = datetime.timedelta(microseconds=1)
 
@@ -53,15 +58,15 @@ def register():
     PlotDailySummary("carbs")
     PlotDailySummary("carbs", in_pct=True)
 
-    for idx, period in enumerate(PERIODS):
-        Matrix.settings["Period"].add(f"{idx}) {period}")
+    #for idx, period in enumerate(PERIODS):
+    #Matrix.settings["Period"].add(f"{idx}) {period}")
 
 class PlotOverview():
     def __init__(self):
-        self.name = "Diabete Overview"
+        self.name = "Diabetes Overview"
         self.id_name = self.name.lower().replace(" ", "_")
 
-        matrix_view.table_stats.TableStats._register_stat(self)
+        TableStats._register_stat(self)
         Matrix.settings["stats"].add(self.name)
 
 
@@ -69,10 +74,12 @@ class PlotOverview():
         # would be nice to be able to compute a link to the test results here
         return "nothing"
 
-    def do_plot(self, ordered_vars, params, param_lists, variables, cfg):
+    def do_plot(self, ordered_vars, settings, setting_lists, variables, cfg):
         fig = go.Figure()
         plot_title = self.name
 
+        for entry in common.Matrix.all_records(settings, setting_lists):
+            break
         GLY_PROPS = {
             "cgm": dict(name="Continue", line_color="darkgreen"),
             "scan": dict(name="Scan", mode="markers", marker_color="green"),
@@ -80,11 +87,8 @@ class PlotOverview():
             "acetone": dict(name="acetone", mode="markers+lines", line=dict(width=5), marker_color="cornflowerblue"),
         }
 
-        if params["Period"] == "---":
-            period = 0
-        else:
-            period = PERIODS[params["Period"].partition(" ")[-1]]
-            now = datetime.datetime.now()
+        period = 8
+        now = datetime.datetime.now()
 
         gly_x = defaultdict(list)
         gly_y = defaultdict(list)
@@ -104,11 +108,15 @@ class PlotOverview():
         ts_prev_reservoir = None
         days_since_prev_reservoir = 0
 
+        period = cfg.get("start", False), cfg.get("end", False),
+
+        bolus = dict()
         cathe = dict()
         ts_prev_cathe = None
         days_since_prev_cathe = 0
-
-        for ts, entry in sorted(diabetes.entries.items()):
+        for entry in common.Matrix.all_records(settings, setting_lists):
+            break
+        for ts, entry in sorted(entry.results.items()):
             for event in entry.events:
                 meal = ts_to_meal_name(ts)
 
@@ -133,7 +141,8 @@ class PlotOverview():
                         current_meal_ratio[meal] = event.value
                         #print(ts, meal, "> CHANGED", current_meal_ratio[meal], event.value)
 
-                if period and (now - ts).days > period: continue
+                if period and not (ts > period[0] and ts < period[1]):
+                        continue
 
                 if event.ev_type == "newReservoir":
                     reservoir[ts] = days_since_prev_reservoir
@@ -147,9 +156,15 @@ class PlotOverview():
                     ch_ratio_min = min([ch_ratio_min, meal_x_y[meal][ts]])
                     meal_x_y[meal][ts + YOTA] = None
 
+                if event.ev_type == "bolus":
+                    bolus[ts - YOTA] = 0
+                    bolus[ts] = event.value * 100
+                    bolus[ts + YOTA] = None
+                    pass
+
                 if event.ev_type == "carbs":
                     meals[meal][ts - YOTA] = 0
-                    meals[meal][ts] = 400 #event.value
+                    meals[meal][ts] = event.value
                     meals[meal][ts + YOTA] = None
 
                 if event.ev_type in GLY_PROPS:
@@ -298,42 +313,50 @@ class PlotOverview():
                                      name=f"Repas {meal}",
                                      legendgroup=meal,
                                      hoverlabel= {'namelength' :-1},
-                                     line=dict(width=0.5),
+                                     line=dict(width=4),
                                      line_color="black",
                                      mode="lines"))
 
-        for meal in sorted(meal_x_y):
-            name = f"Changement de ratio {meal}"
-            fig.add_trace(go.Scatter(x=list(meal_x_y[meal].keys()),
-                                     y=list(meal_x_y[meal].values()),
-                                     name=name,
-                                     legendgroup=meal,
-                                     hoverlabel= {'namelength' :-1},
-                                     line=dict(width=5),
-                                     mode="lines"))
-
-        fig.add_trace(go.Scatter(x=list(reservoir.keys()),
-                                 y=list(reservoir.values()),
-                                 name=f"Changement reservoir",
+        fig.add_trace(go.Scatter(x=list(bolus.keys()),
+                                 y=list(bolus.values()),
+                                 name=f"Insuline",
                                  hoverlabel= {'namelength' :-1},
-                                 marker=dict(size=20),
-                                 marker_color="green",
-                                 line_width=0.5,
-                                 mode="markers+lines"))
+                                 line=dict(width=1),
+                                 line_color="blue",
+                                 mode="lines"))
 
-        fig.add_trace(go.Scatter(x=list(cathe.keys()),
-                                 y=list(cathe.values()),
-                                 name=f"Changement cathé",
-                                 hoverlabel= {'namelength' :-1},
-                                 marker=dict(size=10),
-                                 marker_color="blue",
-                                 line_width=0.5,
-                                 mode="markers+lines"))
+        # for meal in sorted(meal_x_y):
+        #     name = f"Changement de ratio {meal}"
+        #     fig.add_trace(go.Scatter(x=list(meal_x_y[meal].keys()),
+        #                              y=list(meal_x_y[meal].values()),
+        #                              name=name,
+        #                              legendgroup=meal,
+        #                              hoverlabel= {'namelength' :-1},
+        #                              line=dict(width=5),
+        #                              mode="lines"))
+
+        # fig.add_trace(go.Scatter(x=list(reservoir.keys()),
+        #                          y=list(reservoir.values()),
+        #                          name=f"Changement reservoir",
+        #                          hoverlabel= {'namelength' :-1},
+        #                          marker=dict(size=20),
+        #                          marker_color="green",
+        #                          line_width=0.5,
+        #                          mode="markers+lines"))
+
+        # fig.add_trace(go.Scatter(x=list(cathe.keys()),
+        #                          y=list(cathe.values()),
+        #                          name=f"Changement cathé",
+        #                          hoverlabel= {'namelength' :-1},
+        #                          marker=dict(size=10),
+        #                          marker_color="blue",
+        #                          line_width=0.5,
+        #                          mode="markers+lines"))
 
         fig.update_layout(title=plot_title, title_x=0.5)
-        fig.update_layout(yaxis=dict(title=f"Level [{gly_y_min}, {gly_y_max}]",
-                                     range=[ch_ratio_min, gly_y_max*1.05],
-                                     ))
+        # fig.update_layout(yaxis=dict(title=f"Level [{gly_y_min}, {gly_y_max}]",
+        #                              range=[ch_ratio_min, gly_y_max*1.05],
+        #                              ))
         fig.update_layout(xaxis=dict(range=[x_min - datetime.timedelta(hours=1), x_max + datetime.timedelta(hours=1)],
                                      ))
         return fig, ""
@@ -346,29 +369,28 @@ class PlotDailySummary():
         self.name = f"{self.what.title()} Daily Summary" + (" (pct)" if self.in_pct else "")
         self.id_name = self.name.lower().replace(" ", "_")
 
-        matrix_view.table_stats.TableStats._register_stat(self)
+        TableStats._register_stat(self)
         Matrix.settings["stats"].add(self.name)
 
     def do_hover(self, meta_value, variables, figure, data, click_info):
         # would be nice to be able to compute a link to the test results here
         return "nothing"
 
-    def do_plot(self, ordered_vars, params, param_lists, variables, cfg):
+    def do_plot(self, ordered_vars, settings, setting_lists, variables, cfg):
         fig = go.Figure()
         plot_title = self.name
 
-        if params["Period"] == "---":
-            period = 0
-        else:
-            period = PERIODS[params["Period"].partition(" ")[-1]]
-            now = datetime.datetime.now()
+        period = 8
+        now = datetime.datetime.now()
 
         x = []
         day_periods_y = defaultdict(lambda:defaultdict(int))
         day_periods = set()
         day_periods_total = defaultdict(int)
 
-        for ts, entry in sorted(diabetes.entries.items()):
+        for entry in common.Matrix.all_records(settings, setting_lists):
+            break
+        for ts, entry in sorted(entry.results.items()):
             for event in entry.events:
                 if period and (now - ts).days > period: continue
 
@@ -408,21 +430,21 @@ class PlotInsulineChanges():
         self.name = f"{self.what.title()}"
         self.id_name = self.name.lower().replace(" ", "_")
 
-        matrix_view.table_stats.TableStats._register_stat(self)
+        TableStats._register_stat(self)
         Matrix.settings["stats"].add(self.name)
 
     def do_hover(self, meta_value, variables, figure, data, click_info):
         # would be nice to be able to compute a link to the test results here
         return "nothing"
 
-    def do_plot(self, ordered_vars, params, param_lists, variables, cfg):
+    def do_plot(self, ordered_vars, settings, setting_lists, variables, cfg):
         fig = go.Figure()
         plot_title = self.name
 
-        if params["Period"] == "---":
+        if settings["Period"] == "---":
             period = 0
         else:
-            period = PERIODS[params["Period"].partition(" ")[-1]]
+            period = PERIODS[settings["Period"].partition(" ")[-1]]
             now = datetime.datetime.now()
 
         MEAL_TIMES = {
@@ -435,7 +457,9 @@ class PlotInsulineChanges():
 
         maxi = 0
         current_meal_value = defaultdict(int)
-        for ts, entry in sorted(diabetes.entries.items()):
+        for entry in common.Matrix.all_records(settings, setting_lists):
+            break
+        for ts, entry in sorted(entry.results.items()):
             for event in entry.events:
                 if period and (now - ts).days > period: continue
 

@@ -3,10 +3,7 @@ from collections import defaultdict
 
 import plotly.graph_objs as go
 
-import matrix_view
-from common import Matrix
-
-from store import diabetes
+from . import diabetes
 
 YOTA = datetime.timedelta(microseconds=1)
 
