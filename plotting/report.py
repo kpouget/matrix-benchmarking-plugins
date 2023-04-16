@@ -8,7 +8,8 @@ import matrix_benchmarking.plotting.table_stats as table_stats
 import matrix_benchmarking.common as common
 
 def register():
-    BolusReport()
+    for period in PERIODS:
+        BolusReport(period)
 
 def set_vars(additional_settings, ordered_vars, settings, param_lists, variables, cfg):
     _settings = dict(settings)
@@ -77,9 +78,45 @@ def Plot_and_Text(name, args):
 
     return data
 
+PERIODS = "matin", "midi", "gouter", "diner", "nuit", "tout"
+
+def get_time_range(date, day_index, range_name):
+    start_day = datetime.datetime.combine(
+        date - datetime.timedelta(days=day_index),
+        datetime.datetime.min.time()) # midnight morning
+
+    match range_name:
+      case "matin":
+        start_date = datetime.datetime.combine(start_day, datetime.time(hour=6))
+        end_date = datetime.datetime.combine(start_date, datetime.time(hour=12))
+
+      case "midi":
+        start_date = datetime.datetime.combine(start_day, datetime.time(hour=11, minute=30))
+        end_date = datetime.datetime.combine(start_date, datetime.time(hour=15, minute=30))
+
+      case "gouter":
+        start_date = datetime.datetime.combine(start_day, datetime.time(hour=15, minute=30))
+        end_date = datetime.datetime.combine(start_date, datetime.time(hour=19, minute=00))
+
+      case "diner":
+        start_date = datetime.datetime.combine(start_day, datetime.time(hour=18, minute=30))
+        end_date = datetime.datetime.combine(start_date, datetime.time(hour=22, minute=30))
+
+      case "nuit":
+        start_date = datetime.datetime.combine(start_day, datetime.time(hour=18))
+        end_date = datetime.datetime.combine(start_date + datetime.timedelta(days=1), datetime.time(hour=7))
+
+      case "tout" | _:
+        start_date = start_day
+        end_date = start_date + datetime.timedelta(days=1)
+
+    return start_date, end_date
+
+
 class BolusReport():
-    def __init__(self):
-        self.name = "bolus report"
+    def __init__(self, period):
+        self.period = period
+        self.name = f"bolus report: {self.period}"
         self.id_name = self.name.lower().replace(" ", "_")
         self.no_graph = True
         self.is_report = True
@@ -99,13 +136,12 @@ class BolusReport():
 
         last_record_day = list(entry.results)[0]
 
-        for i in range(START, START+DAYS):
-            start_day = datetime.datetime.combine(
-                last_record_day - datetime.timedelta(days=(i)),
-                datetime.datetime.min.time()) # midnight morning
+        header += [html.H1(f"Bolus Study - {self.period}")]
 
-            end_day = start_day + datetime.timedelta(days=1)
-            header += [html.H2(start_day.date())]
-            header += Plot_and_Text(f"Bolus Study", set_config(dict(start=start_day, end=end_day), args))
+        for i in range(START, START+DAYS):
+            start_date, end_date = get_time_range(last_record_day, i, self.period)
+
+            header += [html.H2(start_date.date())]
+            header += Plot_and_Text(f"Bolus Study", set_config(dict(start=start_date, end=end_date, period_name=self.period), args))
 
         return None, header

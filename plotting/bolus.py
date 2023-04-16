@@ -68,7 +68,12 @@ class PlotBolusStudy():
 
         meal_x_y = defaultdict(lambda:defaultdict(float))
 
-        period = cfg.get("start", False), cfg.get("end", False),
+        period = cfg.get("start", False), cfg.get("end", False)
+        if period:
+            period_name = cfg.get("period_name")
+            import locale
+            locale.setlocale(locale.LC_TIME, 'fr_FR')
+            plot_title = period[0].strftime("%A %-d %B") + f" - {period_name}" + f"<br>{plot_title}"
 
         bolus_x_y = dict()
         carbs_x_y = dict()
@@ -107,17 +112,38 @@ class PlotBolusStudy():
         basal_study_has_bolus = False
         for ts, entry in sorted(entry.results.items()):
             if period and ts < period[0]:
+
+                if basal_ev := entry.get(EventType.BASAL_RATE_ACTUAL):
+                    current_basal = basal_ev.value * 100
+
+                if basal_profile_ev := entry.get(EventType.BASAL_RATE_PROFILE):
+                    current_basal_profile = basal_profile_ev.value * 100
+
                 continue
 
             if period and ts >= period[1]:
                 basal_profile_x_y[ts - YOTA] = current_basal_profile
                 break
 
+            if not basal_x_y:
+                basal_x_y[period[0] if period else ts] = current_basal
+
+            if not basal_profile_x_y:
+                basal_profile_x_y[period[0] if period else ts] = current_basal_profile
+
             if basal_ev := entry.get(EventType.BASAL_RATE_ACTUAL):
                 if basal_ev.value == 0 or current_basal == 0:
                     basal_interrupted[ts - YOTA] = 0
                     basal_interrupted[ts] = 300
                     basal_interrupted[ts + YOTA] = None
+
+                if basal_ev.value == 0:
+                    hypo_info = types.SimpleNamespace()
+                    hypo_info.is_hypo = True
+                    hypo_info.predicted = True
+
+                    hypo_info.gly = list(gly_x_y.values())[-1]
+                    daily_log[ts].append(hypo_info)
 
                 basal_x_y[ts - YOTA] = current_basal
                 current_basal = basal_ev.value * 100
@@ -170,6 +196,11 @@ class PlotBolusStudy():
                     bolus_info.iob_pump = None
 
                 try:
+                    bolus_info.carbs = entry.get(EventType.CARBS).value
+                except AttributeError:
+                    bolus_info.carbs = None
+
+                try:
                     bolus_target = entry.get(EventType.GLYCEMIA_BOLUS_TARGET).value
                 except AttributeError:
                     bolus_target = None
@@ -205,6 +236,7 @@ class PlotBolusStudy():
                 cob[ts - YOTA] = current_carbs
 
                 carbs_info = types.SimpleNamespace()
+
                 carbs_info.amount = carbs_amount
                 carbs_info.gly = carbs_bg
                 carbs_info.is_carbs = True
@@ -274,6 +306,12 @@ class PlotBolusStudy():
 
                 if not insulin_on_board:
                     current_insulin = None
+
+                    eob_info = types.SimpleNamespace()
+                    eob_info.is_end_of_bolus = True
+                    eob_info.gly = list(gly_x_y.values())[-1]
+                    daily_log[ts].append(eob_info)
+
                 elif current_insulin < 0.001:
                     if current_insulin > -0.1:
                         current_insulin = 0
@@ -365,8 +403,21 @@ class PlotBolusStudy():
         gly_x = list(gly_x_y.keys())
         gly_y = list(gly_x_y.values())
 
-        bod = datetime.datetime.combine(gly_x[-1], datetime.datetime.min.time())
-        eod = datetime.datetime.combine(gly_x[-1], datetime.datetime.max.time())
+        basal_x_y[period[1] if period else gly_x[-1]] = list(basal_x_y.values())[-1]
+
+        if period:
+            gly_x.insert(0, period[0])
+            gly_y.insert(0, gly_y[0])
+
+            gly_x.append(period[1])
+            gly_y.append(gly_y[-1])
+
+        if period:
+            bod, eod = period
+        else:
+            bod = datetime.datetime.combine(gly_x[-1], datetime.datetime.min.time())
+            eod = datetime.datetime.combine(gly_x[-1], datetime.datetime.max.time())
+
         fig.add_trace(go.Scatter(x=[bod, eod], y=[RANGE_LOW, RANGE_LOW],
                                  line=dict(width=0),
                                  name="Glycémie normale basse", showlegend=False,
@@ -527,85 +578,201 @@ class PlotBolusStudy():
         gly_y_max = max(gly_y)
         gly_y_min = min(gly_y)
 
-        gly_y_max_max = max([gly_y_max] + [v for v in prediction.values() if v])
+        gly_y_max_max = max([gly_y_max] + [v for v in prediction.values() if v] + [239])
 
         fig.update_layout(title=plot_title, title_x=0.5)
-        fig.update_layout(yaxis=dict(title=f"Glycémie [{round(gly_y_min)}, {round(gly_y_max)}]",
+        fig.update_layout(yaxis=dict(title=f"Glycémie",
                                       range=[0, gly_y_max_max*1.05],
                                      ))
-        fig.update_layout(xaxis=dict(range=[bod, eod]))
 
+        fig.update_layout(xaxis=dict(range=[bod, eod]))
+        want_details = False
         text = []
         current_meal = None
+        ongoing_carbs = 0
+        ongoing_bolus = 0
+        ongoing_target = 110
+        ongoing_sensitivity = 150
+        ongoing_ratio = 0
+        ongoing_hypo = False
+        ongoing_extra_correction = 0
+        ongoing_extra_carbs = 0
         for ts, datas in daily_log.items():
-            meal_just_printed = False
-            meal = ts_to_meal_name(ts)
-            if current_meal != meal:
-                current_meal = meal
-                text.append(html.H3(current_meal.title()))
-                current_ts = None
-                meal_just_printed = True
+            if period_name == "tout":
+                meal = ts_to_meal_name(ts)
+                if current_meal != meal:
+                    current_meal = meal
+                    text.append(html.H3(current_meal.title()))
+
             carbs = None
             bolus = None
+            eob = None
+            hypo = None
             for data in datas:
                 if hasattr(data, "is_insulin"): bolus = data
                 if hasattr(data, "is_carbs"): carbs = data
-            gly = bolus.gly if bolus else carbs.gly
-            if not meal_just_printed:
-                text.append(html.Br())
-            text.append(f"{ts.time().strftime('%Hh%M')} | Glycémie à {round(gly)}mg/L, "
-                        f"{f'{carbs.amount}g de glucides' if carbs else ''}"
-                        f"{' et ' if bolus and carbs else ''}"
-                        f"{f'{bolus.amount}u de bolus' if bolus else ''}.")
+                if hasattr(data, "is_end_of_bolus"): eob = data
+                if hasattr(data, "is_hypo"): hypo = data
+
+            gly = data.gly
+
+            text.append(f"{ts.time().strftime('%Hh%M')} | Glycémie à {round(gly)}mg/L, ")
+            if carbs:
+                text.append(f"{carbs.amount}g de glucides")
+                if bolus:
+                    text.append(" et ")
+                else:
+                    text.append("de ressucrage")
+                    if ongoing_bolus:
+                        ongoing_extra_carbs += carbs.amount
+                        text.append("pendant le bolus")
+                    else:
+                        text.append("hors du bolus")
+            if bolus:
+                text.append(f"{bolus.amount:.2f}u")
+                if carbs:
+                    text.append(f"de bolus de repas (ratio à {bolus.ratio}g/u)")
+                else:
+                    text.append("de correction")
+                    if ongoing_bolus:
+                        ongoing_extra_correction += bolus.amount
+                        text.append("pendant le bolus")
+                    else:
+                        text.append("hors du bolus")
+
+            if eob:
+                text.append("fin de l'action de l'insuline")
+
+            if hypo:
+                if hypo.predicted:
+                    text.append(html.B("hypo prédite par la pompe"))
+                    if ongoing_bolus:
+                        ongoing_hypo = True
+                        text.append("pendant le bolus")
+                    else:
+                        text.append("hors du bolus")
+
             text.append(html.Br())
 
             if bolus:
                 if not bolus.target:
                     bolus.target = 150
-                    text.append("Pas de cible :/")
-                    text.append(html.Br())
+                    if want_details:
+                        text.append("Pas de cible :/")
+                        text.append(html.Br())
+                ongoing_target = bolus.target
+
                 if not bolus.sensitivity:
                     bolus.sensitivity = 150
-                    text.append("Pas de sensibilité :/")
-                    text.append(html.Br())
+                    if want_details:
+                        text.append("Pas de sensibilité :/")
+                        text.append(html.Br())
+                ongoing_sensitivity = bolus.sensitivity
+
                 diff = bolus.gly - bolus.target
-                text.append(f"Cible à {round(bolus.target)}mg/L => {round(diff):+d}mg/L à corriger")
-                text.append(html.Br())
+                if want_details:
+                    text.append(f"Cible à {round(bolus.target)}mg/L => {round(diff):+d}mg/L à corriger")
+                    text.append(html.Br())
 
                 correction = diff / bolus.sensitivity
-                text.append(f"Sensibilité à {round(bolus.sensitivity)}mg/L/u ==> correction de {correction:+.2f}u d'insuline.")
-                text.append(html.Br())
+                if want_details:
+                    text.append(f"Sensibilité à {round(bolus.sensitivity)}mg/L/u ==> correction de {correction:+.2f}u d'insuline.")
+                    text.append(html.Br())
 
                 if bolus.iob_pump:
                     correction -= min(correction, bolus.iob_pump)
-                    text.append(f"{bolus.iob_pump:.2f}u d'IOB à déduire de la correction ==> correction de {correction:+.2f}u.")
-                    text.append(html.Br())
+                    if want_details:
+                        text.append(f"{bolus.iob_pump:.2f}u d'IOB à déduire de la correction ==> correction de {correction:+.2f}u.")
+                        text.append(html.Br())
                 else:
-                    text.append("Pas d'insuline active.")
-                    text.append(html.Br())
+                    if want_details:
+                        text.append("Pas d'insuline active.")
+                        text.append(html.Br())
             else:
                 correction = 0
 
-            if carbs and not bolus:
-                text.append(f"Glycémie à {round(carbs.gly)}mg/L, {carbs.amount}g de glucides")
-                text.append(html.Br())
+            if carbs:
+                ongoing_carbs += carbs.amount
 
-            if bolus and carbs and carbs.amount:
+            if carbs and not bolus:
+                if want_details:
+                    text.append(f"Glycémie à {round(carbs.gly)}mg/L, {carbs.amount}g de glucides")
+                    text.append(html.Br())
+
+            if bolus and carbs:
                 carbs_insulin = carbs.amount / bolus.ratio
-                text.append(f"{carbs.amount}g de glucides, ratio à {bolus.ratio}g/u => {carbs_insulin:.2f}u")
-                text.append(html.Br())
+                if want_details:
+                    text.append(f"{carbs.amount}g de glucides, ratio à {bolus.ratio}g/u => besoin de {carbs_insulin:+.2f}u")
+                    text.append(html.Br())
+                ongoing_bolus += carbs_insulin
+                ongoing_ratio = bolus.ratio
             else:
                 carbs_insulin = 0
 
             if carbs_insulin or correction:
                 total = carbs_insulin + correction
                 diff = bolus.amount - total
-                text.append(f"{carbs_insulin:.2f}u pour les glucides + {correction:.2f}u pour la correction")
-                text.append(html.Br())
-                text.append(f" ==> {total:.2f}u d'insuline calculé pour {bolus.amount:.2f}u injecté ({diff:+.2f}u d'écart)")
+                if want_details:
+                    text.append(f"{carbs_insulin:.2f}u pour les glucides + {correction:.2f}u pour la correction")
+                    text.append(html.Br())
+                    text.append(f" ==> {total:.2f}u d'insuline calculé pour {bolus.amount:.2f}u injecté ({diff:+.2f}u d'écart)")
+                    text.append(html.Br())
+            if eob:
+                diff = eob.gly - ongoing_target
+                if want_details:
+                    text.append(f"Cible à {ongoing_target:.0f}mg/L. Glycémie à {eob.gly:.0f}mg/L. Différence de {diff:.0f}mg/L")
+                    text.append(html.Br())
+                correction_required = diff / ongoing_sensitivity
+                if want_details:
+                    text.append(f"{diff:.0f}mg/L à {ongoing_sensitivity:.0f}mg/L/u => Besoin de {correction_required:+.2f}u d'insuline.")
+                    text.append(html.Br())
+                new_ratio = (ongoing_carbs + ongoing_extra_carbs) / (ongoing_bolus + ongoing_extra_correction + correction_required)
 
-            text.append(html.Br())
-        text = None
+                if want_details:
+                    text.append(f"Ratio calculé: {new_ratio:.0f}g/u")
+                    text.append(html.Br())
+
+                if abs(diff) > 50 or ongoing_extra_correction or ongoing_extra_carbs or ongoing_hypo:
+                    too_much = False
+                    too_low = False
+                    if ongoing_extra_correction:
+                        text.append(html.B(f"Correction de {ongoing_extra_correction:+.2f}u pendant le bolus."))
+                        text.append(html.Br())
+                        too_low = True
+                    if ongoing_extra_carbs:
+                        text.append(html.B(f"Ressucrage de {ongoing_extra_carbs:+.0f}g pendant le bolus."))
+                        text.append(html.Br())
+                        too_much = True
+                    if ongoing_hypo:
+                        text.append(html.B("Hypo prédite par la pompe. Bolus trop fort. Calculs de ratio non fiables."))
+                        text.append(html.Br())
+                        too_much = True
+                    if ongoing_extra_correction and (ongoing_extra_carbs or ongoing_hypo):
+                        text.append(html.I("Correction d'insuline et hypo/ressucrage. Trop compliqué à calculer !"))
+                        text.append(html.Br())
+                    else:
+                        text += [f"Glycémie {abs(diff):.0f}mg/L trop {'haute' if diff > 0 else 'basse'}. ",
+                                 html.B(f"Ratio calculé: {new_ratio:.0f}g/u"),
+                                 f"au lieu de {ongoing_ratio}g/u.",
+                                 html.Br()]
+
+                    if new_ratio < ongoing_ratio: too_low = True
+                    if new_ratio > ongoing_ratio: too_much = True
+
+                    if too_much: text += ["==> trop d'insuline dans le bolus", html.Br()]
+                    if too_low: text += ["==> pas assez d'insuline dans le bolus", html.Br()]
+
+                else:
+                    text += [f"Glycémie {abs(diff):+.0f}mg/L trop {'haute' if diff > 0 else 'basse'}. Bolus correct."]
+                    text.append("---")
+                text.append(html.Br())
+                ongoing_carbs = 0
+                ongoing_bolus = 0
+                ongoing_extra_correction = 0
+                ongoing_extra_carbs = 0
+                ongoing_ratio = 0
+                ongoing_hypo = False
+
         return fig, text
 
 def x_out_of_bound(x, y, lower_limit, upper_limit):

@@ -256,16 +256,18 @@ def parse_tidepool(cache_file):
 #  'units': 'mg/dL',
 
             entries[ts].add_events(ts, [
-                CarbsEvent(row["carbInput"]),
                 InsulineSensitivityEvent(row.get("insulinSensitivity", 0) * GLYCEMIA_MMOL_TO_MG),
                 CarbsRatioEvent(row.get("insulinCarbRatio")),
                 InsulineOnBoardEvent(row.get("insulinOnBoard"))
             ])
 
-            if "bgInput" in row:
+            if row["carbInput"]:
                 entries[ts].add_event(ts,
-                    BolusGlycemiaEvent(row["bgInput"], row["units"]),
-                )
+                                      CarbsEvent(row["carbInput"]))
+
+            if "bgInput" in row and row["bgInput"]:
+                entries[ts].add_event(ts,
+                                      BolusGlycemiaEvent(row["bgInput"], row["units"]))
 
             try:
                 entries[ts].add_event(ts,
