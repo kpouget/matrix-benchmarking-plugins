@@ -59,6 +59,9 @@ class PlotBolusStudy():
         fig = go.Figure()
         plot_title = self.name
 
+        bolus_mode = False
+        basal_mode = True
+        
         for entry in common.Matrix.all_records(settings, setting_lists):
             break
 
@@ -97,7 +100,7 @@ class PlotBolusStudy():
         insulin_on_board = dict()
         carbs_on_board = dict()
 
-        gly_hourly_diff = {}
+        insulin_adjustment_x_y = {}
 
         basal_x_y = {}
         basal_profile_x_y = {}
@@ -114,10 +117,10 @@ class PlotBolusStudy():
             if period and ts < period[0]:
 
                 if basal_ev := entry.get(EventType.BASAL_RATE_ACTUAL):
-                    current_basal = basal_ev.value * 100
+                    current_basal = basal_ev.value
 
                 if basal_profile_ev := entry.get(EventType.BASAL_RATE_PROFILE):
-                    current_basal_profile = basal_profile_ev.value * 100
+                    current_basal_profile = basal_profile_ev.value
 
                 continue
 
@@ -137,22 +140,24 @@ class PlotBolusStudy():
                     basal_interrupted[ts] = 300
                     basal_interrupted[ts + YOTA] = None
 
-                if basal_ev.value == 0:
                     hypo_info = types.SimpleNamespace()
                     hypo_info.is_hypo = True
-                    hypo_info.predicted = True
-
-                    hypo_info.gly = list(gly_x_y.values())[-1]
-                    daily_log[ts].append(hypo_info)
+                    hypo_info.stopped = basal_ev.value == 0
+                    hypo_info.restarted = current_basal == 0
+                    hypo_info.basal_rate = basal_ev.value or current_basal
+                    hypo_info.gly = list(gly_x_y.values())[-1] \
+                        if gly_x_y else 0
+                    if not (hypo_info.stopped and hypo_info.restarted):
+                        daily_log[ts].append(hypo_info)
 
                 basal_x_y[ts - YOTA] = current_basal
-                current_basal = basal_ev.value * 100
+                current_basal = basal_ev.value
                 basal_x_y[ts] = current_basal
 
 
             if basal_profile_ev := entry.get(EventType.BASAL_RATE_PROFILE):
                 basal_profile_x_y[ts - YOTA] = current_basal_profile
-                current_basal_profile = basal_profile_ev.value * 100
+                current_basal_profile = basal_profile_ev.value
                 basal_profile_x_y[ts] = current_basal_profile
 
             entry_has_carbs = False
@@ -170,7 +175,9 @@ class PlotBolusStudy():
                     bolus_bg = entry.get(EventType.GLYCEMIA_BOLUS_BASE).value
                 except AttributeError:
                     logging.warning(f"{ts} - No bolus glycemia available")
-                    bolus_bg = list(gly_x_y.values())[-1]
+                    bolus_bg = list(gly_x_y.values())[-1] \
+                        if gly_x_y else 0
+
 
                 try:
                     bolus_ratio = entry.get(EventType.INSULIN_CARB_RATIO).value
@@ -229,7 +236,8 @@ class PlotBolusStudy():
                 carbs_x_y[ts] = carbs_ev.value
                 carbs_x_y[ts + YOTA] = None
 
-                carbs_bg = list(gly_x_y.values())[-1]
+                carbs_bg = list(gly_x_y.values())[-1] \
+                    if gly_x_y else 0
 
                 carbs_amount = carbs_ev.value
 
@@ -280,11 +288,24 @@ class PlotBolusStudy():
                         basal_study_start_time = ts
                         basal_study_start_gly = bg_value
                 elif has_carbs_or_insulin() or basal_study_start_time.hour != ts.hour:
-                    diff = bg_value - basal_study_start_gly
-                    gly_hourly_diff[basal_study_start_time + YOTA] = diff
-                    gly_hourly_diff[ts - YOTA] = diff
+                    gly_diff = bg_value - basal_study_start_gly
+                    insulin_diff = gly_diff / 200
+                    if not insulin_adjustment_x_y:
+                        insulin_adjustment_x_y[basal_study_start_time] = 0
+                    elif list(insulin_adjustment_x_y.values())[-1] is None:
+                        insulin_adjustment_x_y[basal_study_start_time] = 0
+
+                    if abs(insulin_diff) >= 0.1:
+                        insulin_adjustment_x_y[basal_study_start_time + YOTA] = current_basal_profile + insulin_diff
+                        insulin_adjustment_x_y[ts - YOTA] = current_basal_profile + insulin_diff
+                    else:
+                        insulin_adjustment_x_y[basal_study_start_time + YOTA] = 0
+                        insulin_adjustment_x_y[basal_study_start_time + YOTA + YOTA] = None
+                        insulin_adjustment_x_y[ts - YOTA] = None
+                        
                     if has_carbs_or_insulin():
-                        gly_hourly_diff[ts] = None
+                        insulin_adjustment_x_y[ts] = 0
+                        insulin_adjustment_x_y[ts + YOTA] = None
                         basal_study_start_time = None
                     else:
                         basal_study_start_time = ts
@@ -470,7 +491,6 @@ class PlotBolusStudy():
 
         fig.add_trace(go.Scatter(x=gly_x, y=gly_y, **GLY_PROPS, showlegend=False))
 
-
         fig.add_trace(go.Scatter(x=list(carbs_x_y.keys()),
                                  y=[(v*1500 if v is not None else None) for v in carbs_x_y.values()],
                                  name=f"Meal",
@@ -478,6 +498,7 @@ class PlotBolusStudy():
                                  hoverlabel= {'namelength' :-1},
                                  line=dict(width=1),
                                  line_color="coral",
+                                 visible="legendonly" if basal_mode else None,
                                  mode="lines"))
 
         fig.add_trace(go.Scatter(x=list(bolus_x_y.keys()),
@@ -487,6 +508,7 @@ class PlotBolusStudy():
                                  hoverlabel= {'namelength' :-1},
                                  line=dict(width=1),
                                  line_color="blue",
+                                 visible="legendonly" if basal_mode else None,
                                  mode="lines"))
 
         fig.add_trace(go.Scatter(x=list(bolus_x_y.keys()),
@@ -538,17 +560,8 @@ class PlotBolusStudy():
                                  line_color="coral",
                                  mode="lines"))
 
-        fig.add_trace(go.Scatter(x=list(gly_hourly_diff.keys()),
-                                 y=list(gly_hourly_diff.values()),
-                                 name=f"Gly variation",
-                                 hoverlabel= {'namelength' :-1},
-                                 line=dict(width=1),
-                                 line_color="red",
-                                 visible="legendonly",
-                                 mode="lines"))
-
         fig.add_trace(go.Scatter(x=list(basal_x_y.keys()),
-                                 y=list(basal_x_y.values()),
+                                 y=[v * 100 if v is not None else None for v in basal_x_y.values()],
                                  name=f"Basal administré",
                                  hoverlabel= {'namelength' :-1},
                                  line=dict(width=1),
@@ -557,7 +570,7 @@ class PlotBolusStudy():
                                  mode="lines"))
 
         fig.add_trace(go.Scatter(x=list(basal_profile_x_y.keys()),
-                                 y=list(basal_profile_x_y.values()),
+                                 y=[v * 100 if v is not None else None for v in basal_profile_x_y.values()],
                                  name=f"Basal prévu",
                                  hoverlabel= {'namelength' :-1},
                                  line=dict(width=1),
@@ -575,6 +588,16 @@ class PlotBolusStudy():
                                  visible="legendonly",
                                  mode="lines"))
 
+        fig.add_trace(go.Scatter(x=list(insulin_adjustment_x_y.keys()),
+                                 y=[v * 100 if v is not None else None for v in insulin_adjustment_x_y.values()],
+                                 name=f"Insulin adjustment * 100",
+                                 hoverlabel= {'namelength' :-1},
+                                 line=dict(width=1),
+                                 line_color="red",
+                                 line_width=2,
+                                 visible="legendonly" if bolus_mode else None,
+                                 mode="lines"))
+        
         gly_y_max = max(gly_y)
         gly_y_min = min(gly_y)
 
@@ -594,9 +617,10 @@ class PlotBolusStudy():
         ongoing_target = 110
         ongoing_sensitivity = 150
         ongoing_ratio = 0
-        ongoing_hypo = False
+        ongoing_stop = False
         ongoing_extra_correction = 0
         ongoing_extra_carbs = 0
+        ongoing_gly_bolus_time = None
         for ts, datas in daily_log.items():
             if period_name == "tout":
                 meal = ts_to_meal_name(ts)
@@ -634,23 +658,31 @@ class PlotBolusStudy():
                     text.append(f"de bolus de repas (ratio à {bolus.ratio}g/u)")
                 else:
                     text.append("de correction")
+                    ongoing_extra_correction += bolus.amount
                     if ongoing_bolus:
-                        ongoing_extra_correction += bolus.amount
                         text.append("pendant le bolus")
                     else:
                         text.append("hors du bolus")
+                        ongoing_gly_bolus_time = bolus.gly
 
             if eob:
                 text.append("fin de l'action de l'insuline")
 
             if hypo:
-                if hypo.predicted:
-                    text.append(html.B("hypo prédite par la pompe"))
+                if hypo.stopped:
+                    text.append(html.B("Arret du basal par la pompe"))
+                    ongoing_stop = ts
                     if ongoing_bolus:
-                        ongoing_hypo = True
                         text.append("pendant le bolus")
                     else:
                         text.append("hors du bolus")
+                if hypo.restarted and ongoing_stop != False:
+                    duration_minutes = (ts - ongoing_stop).total_seconds() / 60
+                    duration_hr = duration_minutes / 60
+                    avoided_insulin = duration_hr * hypo.basal_rate
+                    text.append(f"Reprise du basal par la pompe. Arret de {duration_minutes:.0f} minutes à {hypo.basal_rate}u/heure, soit {avoided_insulin:.2f}u")
+                    if ongoing_bolus:
+                        ongoing_extra_correction -= avoided_insulin
 
             text.append(html.Br())
 
@@ -726,38 +758,61 @@ class PlotBolusStudy():
                 if want_details:
                     text.append(f"{diff:.0f}mg/L à {ongoing_sensitivity:.0f}mg/L/u => Besoin de {correction_required:+.2f}u d'insuline.")
                     text.append(html.Br())
-                new_ratio = (ongoing_carbs + ongoing_extra_carbs) / (ongoing_bolus + ongoing_extra_correction + correction_required)
 
-                if want_details:
-                    text.append(f"Ratio calculé: {new_ratio:.0f}g/u")
-                    text.append(html.Br())
-
-                if abs(diff) > 50 or ongoing_extra_correction or ongoing_extra_carbs or ongoing_hypo:
+                new_ratio = None
+                if ongoing_bolus:
+                    new_ratio = (ongoing_carbs + ongoing_extra_carbs) / (ongoing_bolus + ongoing_extra_correction + correction_required)
+                    if want_details:
+                        text.append(f"Ratio calculé: {new_ratio:.0f}g/u")
+                        text.append(html.Br())
+                elif ongoing_extra_correction:
+                    new_sensibility =  abs(ongoing_gly_bolus_time - eob.gly) / ongoing_extra_correction
+                    if want_details or True:
+                        text.append(f"Sensibilité calculé: {ongoing_gly_bolus_time:.0f}u pour {abs(ongoing_gly_bolus_time - eob.gly):.0f}mg/L")
+                        text.append(html.Br())
+                if abs(diff) > 50 or ongoing_extra_correction or ongoing_extra_carbs or ongoing_extra_correction < 0:
                     too_much = False
                     too_low = False
-                    if ongoing_extra_correction:
+                    if ongoing_extra_correction and ongoing_bolus:
                         text.append(html.B(f"Correction de {ongoing_extra_correction:+.2f}u pendant le bolus."))
                         text.append(html.Br())
                         too_low = True
+
                     if ongoing_extra_carbs:
                         text.append(html.B(f"Ressucrage de {ongoing_extra_carbs:+.0f}g pendant le bolus."))
                         text.append(html.Br())
                         too_much = True
-                    if ongoing_hypo:
-                        text.append(html.B("Hypo prédite par la pompe. Bolus trop fort. Calculs de ratio non fiables."))
+
+                    if ongoing_extra_correction < 0:
+                        text.append(html.B("Basal temporairement arrêté par la pompe."))
                         text.append(html.Br())
                         too_much = True
-                    if ongoing_extra_correction and (ongoing_extra_carbs or ongoing_hypo):
+
+                    if ongoing_extra_correction and (ongoing_extra_carbs):
                         text.append(html.I("Correction d'insuline et hypo/ressucrage. Trop compliqué à calculer !"))
                         text.append(html.Br())
                     else:
-                        text += [f"Glycémie {abs(diff):.0f}mg/L trop {'haute' if diff > 0 else 'basse'}. ",
-                                 html.B(f"Ratio calculé: {new_ratio:.0f}g/u"),
-                                 f"au lieu de {ongoing_ratio}g/u.",
-                                 html.Br()]
+                        if not new_ratio:
+                            text += [f"Glycémie {abs(diff):.0f}mg/L trop {'haute' if diff > 0 else 'basse'}. ",
+                                     f"Sensibilité calculée: {new_sensibility:.0f}mg/L/U au lieu de {ongoing_sensitivity:.0f}mg/L/u.",
+                                     html.Br()
+                                     ]
+                        elif abs(diff) > 40:
+                            text += [f"Glycémie {abs(diff):.0f}mg/L trop {'haute' if diff > 0 else 'basse'}. ",
+                                     html.B(f"Ratio calculé: {new_ratio:.0f}g/u"),
+                                     f"au lieu de {ongoing_ratio}g/u.",
+                                     html.Br()]
+                        else:
+                            text += [f"Glycemie final à {diff:+.0f}mg/L de la cible, correct.",
+                                     html.Br()]
 
-                    if new_ratio < ongoing_ratio: too_low = True
-                    if new_ratio > ongoing_ratio: too_much = True
+                    if abs(diff) > 20:
+                        if new_ratio:
+                            if new_ratio < ongoing_ratio: too_low = True
+                            if new_ratio > ongoing_ratio: too_much = True
+                        else:
+                            if diff > 0: too_low = True
+                            else: too_much = True
 
                     if too_much: text += ["==> trop d'insuline dans le bolus", html.Br()]
                     if too_low: text += ["==> pas assez d'insuline dans le bolus", html.Br()]
@@ -771,7 +826,7 @@ class PlotBolusStudy():
                 ongoing_extra_correction = 0
                 ongoing_extra_carbs = 0
                 ongoing_ratio = 0
-                ongoing_hypo = False
+                ongoing_gly_bolus_time = None
 
         return fig, text
 
