@@ -125,7 +125,7 @@ class BolusReport():
 
     def do_plot(self, *args):
         START = 0
-        DAYS = 5
+        DAYS = 7
 
         header = []
 

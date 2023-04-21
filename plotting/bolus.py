@@ -267,35 +267,26 @@ class PlotBolusStudy():
             elif entry_has_bolus:
                 basal_study_has_bolus = True
 
-            if not (bg_ev := entry.get(EventType.GLYCEMIA_CGM)):
-                continue
+            def has_insulin():
+                return bool(insulin_on_board)
 
-            bg_value = bg_ev.value
-            gly_x_y[ts] = bg_value
-
-            def has_carbs_or_insulin():
-                if cob[ts] and cob[ts] >= 0.1:
-                    return True
-                if iob[ts] and iob[ts] >= 0.1:
-                    return True
-                return False
-
-            def update_basal_study():
+            def update_basal_study(last=False):
                 nonlocal basal_study_start_time, basal_study_start_gly
 
                 if basal_study_start_time is None:
-                    if not has_carbs_or_insulin():
+                    if not has_insulin():
                         basal_study_start_time = ts
                         basal_study_start_gly = bg_value
-                elif has_carbs_or_insulin() or basal_study_start_time.hour != ts.hour:
+                        
+                elif last or has_insulin() or basal_study_start_time.hour != ts.hour:
                     gly_diff = bg_value - basal_study_start_gly
-                    insulin_diff = gly_diff / 200
+                    insulin_diff = gly_diff / DEFAULT_INSULIN_SENSITIVITY
                     if not insulin_adjustment_x_y:
                         insulin_adjustment_x_y[basal_study_start_time] = 0
                     elif list(insulin_adjustment_x_y.values())[-1] is None:
                         insulin_adjustment_x_y[basal_study_start_time] = 0
 
-                    if abs(insulin_diff) >= 0.1:
+                    if True: #abs(insulin_diff) >= 0.1:
                         insulin_adjustment_x_y[basal_study_start_time + YOTA] = current_basal_profile + insulin_diff
                         insulin_adjustment_x_y[ts - YOTA] = current_basal_profile + insulin_diff
                     else:
@@ -303,7 +294,7 @@ class PlotBolusStudy():
                         insulin_adjustment_x_y[basal_study_start_time + YOTA + YOTA] = None
                         insulin_adjustment_x_y[ts - YOTA] = None
                         
-                    if has_carbs_or_insulin():
+                    if last or has_insulin():
                         insulin_adjustment_x_y[ts] = 0
                         insulin_adjustment_x_y[ts + YOTA] = None
                         basal_study_start_time = None
@@ -314,6 +305,13 @@ class PlotBolusStudy():
                         basal_study_has_carbs = False
                         basal_study_has_bolus = False
 
+            if not (bg_ev := entry.get(EventType.GLYCEMIA_CGM)):
+                update_basal_study()
+                continue
+
+            bg_value = bg_ev.value
+            gly_x_y[ts] = bg_value
+                        
             if insulin_on_board:
                 current_insulin = 0
                 for bolus_ts, insulin_info in insulin_on_board.copy().items():
@@ -415,10 +413,11 @@ class PlotBolusStudy():
             current_gly_prediction_date = ts
 
             update_basal_study()
-
+        
         if not gly_x_y:
             return None, "No glycemia :/"
 
+        update_basal_study(last=True)
         x_min = x_max = datetime.datetime.now()
 
         gly_x = list(gly_x_y.keys())
@@ -427,11 +426,15 @@ class PlotBolusStudy():
         basal_x_y[period[1] if period else gly_x[-1]] = list(basal_x_y.values())[-1]
 
         if period:
-            gly_x.insert(0, period[0])
-            gly_y.insert(0, gly_y[0])
+            if (gly_x[0] - period[0]).total_seconds() / 60 < 30:
+                # if first point if less than 30min, do not complete
+                gly_x.insert(0, period[0])
+                gly_y.insert(0, gly_y[0])
 
-            gly_x.append(period[1])
-            gly_y.append(gly_y[-1])
+            if (period[1] - gly_x[-1]).total_seconds() / 60 < 30:
+                # if last point if less than 30min, do not complete
+                gly_x.append(period[1])
+                gly_y.append(gly_y[-1])
 
         if period:
             bod, eod = period
@@ -599,13 +602,13 @@ class PlotBolusStudy():
                                  mode="lines"))
         
         gly_y_max = max(gly_y)
-        gly_y_min = min(gly_y)
-
+        y_min = min([0] + [v * 100 for v in insulin_adjustment_x_y.values() if v])
+        
         gly_y_max_max = max([gly_y_max] + [v for v in prediction.values() if v] + [239])
 
         fig.update_layout(title=plot_title, title_x=0.5)
         fig.update_layout(yaxis=dict(title=f"Glycémie",
-                                      range=[0, gly_y_max_max*1.05],
+                                      range=[y_min * 1.05, gly_y_max_max*1.05],
                                      ))
 
         fig.update_layout(xaxis=dict(range=[bod, eod]))
