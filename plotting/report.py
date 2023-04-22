@@ -1,6 +1,7 @@
 import copy
 import datetime
 
+import plotly.graph_objs as go
 from dash import html
 from dash import dcc
 
@@ -137,11 +138,95 @@ class BolusReport():
         last_record_day = list(entry.results)[0]
 
         header += [html.H1(f"Bolus Study - {self.period}")]
-
+        header += [html.H2(f"Résumé")]
+        summary = []
+        header += [html.Span(summary)]
+        plots = []
+        time_period = [None, None]
         for i in range(START, START+DAYS):
             start_date, end_date = get_time_range(last_record_day, i, self.period)
-
+            if time_period[1] is None:
+                time_period[1] = end_date
+            time_period[0] = start_date
             header += [html.H2(start_date.date())]
-            header += Plot_and_Text(f"Bolus Study", set_config(dict(start=start_date, end=end_date, period_name=self.period), args))
+            plot, text = Plot_and_Text(f"Bolus Study", set_config(dict(start=start_date, end=end_date, period_name=self.period), args))
+            header += [plot, text]
+            plots += [[plot, text]]
 
+        summary += generate_summary(plots, self.period, time_period)
         return None, header
+
+
+def generate_summary(plots, period_name, period):
+    fig = go.Figure()
+    plot_title = f"Résumé {period_name} sur { (period[1] - period[0]).days + 1} jours<br>{period[0].date()} - {period[1].date()}"
+
+    y_min = 0
+    first = True
+
+    headers = []
+    for plot, text in plots:
+        for _data in plot.figure.data:
+            data = copy.deepcopy(_data)
+            keep = data.name in [
+                "Glycemia",
+                "Insuline shot (*10)", "Carbs",
+                #"Meal", "Bolus",
+                "Insulin adjustment * 100",
+                "IOB * 10",
+                "Basal administré * 100"
+            ]
+            is_normale = bool(first and data.name and ("normale" in data.name))
+            keep |= is_normale
+
+            if not keep:
+                continue
+            
+            date = list(data.x)[0].date()
+            day_offset = date - period[0].date()
+            data.legendgroup = str(date)
+            import locale
+            locale.setlocale(locale.LC_TIME, 'fr_FR')
+            data.legendgrouptitle.text = date.strftime("%A %-d %B")
+            if not is_normale:
+                data.fill = None
+                #data.line.color = None
+
+            data.x = [d - day_offset for d in data.x]
+            fig.add_trace(data)
+            y_min = min([y_min] + [y for y in data.y if y is not None])
+
+        headers += [html.H2(str(date))]
+
+        def process_line(line):
+            nonlocal headers
+            keep = "Ratio calculé" in str(line)
+            keep |= "Sensibilité calculé" in str(line)
+            if not keep: return
+            headers += line
+            headers += [html.Br()]
+        
+        current_line = []
+        for child in text.children:
+            if not isinstance(child, html.Br):
+                current_line.append(child)
+                continue
+            
+            process_line(current_line)
+            current_line = []
+                
+        first = False
+            
+    fig.update_layout(title=plot_title, title_x=0.5)
+    fig.update_layout(yaxis=dict(title=f"Glycémie",
+                                 range=[y_min, 420],
+                                 ))
+    
+    #fig.update_layout(xaxis=dict(range=[period[0].time(), period[1].time()]))
+        
+    return  dcc.Graph(figure=fig), html.Div(
+                headers,
+                style={"border-radius": "5px",
+                       "padding": "0.5em",
+                       "background-color": "lightgray",
+                       })
