@@ -10,7 +10,7 @@ from matrix_benchmarking.common import Matrix
 from matrix_benchmarking.plotting.table_stats import TableStats
 import matrix_benchmarking.common as common
 
-from ..store import EventType
+from ..store import EventType, TimeRangeType
 
 def register():
     PlotBolusStudy()
@@ -113,7 +113,28 @@ class PlotBolusStudy():
         basal_study_has_carbs_bolus = False
         basal_study_has_carbs = False
         basal_study_has_bolus = False
+
+        current_sensitivity_timerange = {}
+        current_basal_timerange = {}
+        current_ratio_timerange = {}
+        def get_current_range(timerange, ts):
+            value = None
+            for start, time_value in timerange.items():
+                if ts.time() > start:
+                    value = time_value
+                else:
+                    break
+            if value is None: import pdb;pdb.set_trace()
+            return value
+        
         for ts, entry in sorted(entry.results.items()):
+            if sensitivity_ev := entry.get(TimeRangeType.INSULIN_SENSITIVITY):
+                current_sensitivity_timerange = sensitivity_ev.value
+            if ratio_ev := entry.get(TimeRangeType.INSULIN_CARB_RATIO):
+                current_ratio_timerange = ratio_ev.value
+            if basal_ev := entry.get(TimeRangeType.BASAL):
+                current_basal_timerange = basal_ev.value
+                
             if period and ts < period[0]:
 
                 if basal_ev := entry.get(EventType.BASAL_RATE_ACTUAL):
@@ -127,13 +148,14 @@ class PlotBolusStudy():
             if period and ts >= period[1]:
                 basal_profile_x_y[ts - YOTA] = current_basal_profile
                 break
+            
 
             if not basal_x_y:
                 basal_x_y[period[0] if period else ts] = current_basal
 
             if not basal_profile_x_y:
                 basal_profile_x_y[period[0] if period else ts] = current_basal_profile
-
+            
             if basal_ev := entry.get(EventType.BASAL_RATE_ACTUAL):
                 if basal_ev.value == 0 or current_basal == 0:
                     basal_interrupted[ts - YOTA] = 0
@@ -174,22 +196,25 @@ class PlotBolusStudy():
                 try:
                     bolus_bg = entry.get(EventType.GLYCEMIA_BOLUS_BASE).value
                 except AttributeError:
-                    logging.warning(f"{ts} - No bolus glycemia available")
                     bolus_bg = list(gly_x_y.values())[-1] \
                         if gly_x_y else 0
-
+                    if not bolus_bg:
+                        logging.warning(f"{ts} - No bolus glycemia available.")
 
                 try:
                     bolus_ratio = entry.get(EventType.INSULIN_CARB_RATIO).value
                 except AttributeError:
-                    bolus_ratio = DEFAULT_CARB_RATIO
-                    logging.warning(f"{ts} - No carbs/insulin ratio available")
-
+                    bolus_ratio = get_current_range(current_ratio_timerange, ts)
+                    if bolus_ratio is None:
+                        logging.warning(f"Could not find the ratio for {ts.time()} in {current_ratio_timerange}")
+                        bolus_ratio = DEFAULT_CARB_RATIO
                 try:
                     insulin_sensitivity = entry.get(EventType.INSULIN_SENSITIVITY).value
                 except AttributeError:
-                    logging.warning(f"{ts} - No insulin sensitivity available")
-                    insulin_sensitivity = DEFAULT_INSULIN_SENSITIVITY
+                    insulin_sensitivity = get_current_range(current_sensitivity_timerange, ts)
+                    if bolus_ratio is None:
+                        logging.warning(f"Could not find the sensitivity for {ts.time()} in {current_ratio_timerange}")
+                        insulin_sensitivity = DEFAULT_INSULIN_SENSITIVITY
 
                 bolus_info = types.SimpleNamespace()
                 bolus_info.ratio = bolus_ratio
@@ -785,8 +810,8 @@ class PlotBolusStudy():
                         text.append(html.Br())
                 elif ongoing_extra_correction:
                     new_sensibility =  abs(ongoing_gly_bolus_time - eob.gly) / ongoing_extra_correction
-                    if want_details or True:
-                        text.append(f"Sensibilité calculé: {ongoing_gly_bolus_time:.0f}u pour {abs(ongoing_gly_bolus_time - eob.gly):.0f}mg/L")
+                    if want_details:
+                        text.append(f"Paramétres de calcul de la sensibilité: {ongoing_gly_bolus_time:.0f}u pour {abs(ongoing_gly_bolus_time - eob.gly):.0f}mg/L")
                         text.append(html.Br())
                 if abs(diff) > 50 or ongoing_extra_correction or ongoing_extra_carbs or ongoing_extra_correction < 0:
                     too_much = False
@@ -814,7 +839,7 @@ class PlotBolusStudy():
                         if not new_ratio:
                             text += [f"Glycémie {abs(diff):.0f}mg/L trop {'haute' if diff > 0 else 'basse'} "
                                      f"apres le bolus de {ongoing_bolus_start_time.time().strftime('%Hh%M')}. ",
-                                     f"Sensibilité calculée: {new_sensibility:.0f}mg/L/U au lieu de {ongoing_sensitivity:.0f}mg/L/u.",
+                                     html.B(f"Sensibilité calculée: {new_sensibility:.0f}mg/L/U"), f"au lieu de {ongoing_sensitivity:.0f}mg/L/u.",
                                      html.Br()
                                      ]
                         elif abs(diff) > 40:

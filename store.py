@@ -16,14 +16,18 @@ import matrix_benchmarking.store as store
 GLYCEMIA_MMOL_TO_MG = 18.0182
 
 class TimeRange():
-    def __init__(self, ev_type, value, unit, start_time):
+    @staticmethod
+    def time_from_milliseconds(ms):
+        return (datetime.datetime.combine(datetime.date.today(), datetime.time.min)
+                + datetime.timedelta(milliseconds=ms)).time()
+    
+    def __init__(self, ev_type, startTime2value, unit):
         self.ev_type = ev_type
-        self.value = value
+        self.value = startTime2value
         self.unit = unit
-        self.start_time = start_time
 
     def __str__(self):
-        return f"{self.ts} | {self.ev_type}[{self.value}{self.unit}|>{self.start_time}]"
+        return f"{self.ts} | {self.ev_type}[]"
 
     def __repr__(self):
         return str(self)
@@ -133,7 +137,6 @@ def CarbsEvent(value):
     return Event(EventType.CARBS, value, "g")
 
 def BolusEvent(value):
-    if value < 0.001: import pdb;pdb.set_trace()
     return Event(EventType.BOLUS, value, "u")
 
 def NewReservoirEvent():
@@ -145,14 +148,14 @@ def NewCatheEvent():
 def CarbsRatioEvent(value):
     return Event(EventType.INSULIN_CARB_RATIO, value, "g/u")
 
-def SensitivityTimeRange(value, start_time):
-    return TimeRange(TimeRangeType.INSULIN_SENSITIVITY, value, "gly/u", start_time)
+def SensitivityTimeRange(startTime2value):
+    return TimeRange(TimeRangeType.INSULIN_SENSITIVITY, startTime2value, "gly/u")
 
-def CarbsRatioTimeRange(value, start_time):
-    return TimeRange(TimeRangeType.INSULIN_CARB_RATIO, value, "g/u", start_time)
+def CarbsRatioTimeRange(startTime2value):
+    return TimeRange(TimeRangeType.INSULIN_CARB_RATIO, startTime2value, "g/u")
 
-def BasalTimeRange(value, start_time):
-    return TimeRange(TimeRangeType.BASAL, value, "u/h", start_time)
+def BasalTimeRange(startTime2value):
+    return TimeRange(TimeRangeType.BASAL, startTime2value, "u/h")
 
 def parse_fake():
     entries = defaultdict(Entry)
@@ -268,7 +271,7 @@ def parse_tidepool(cache_file):
             if "bgInput" in row and row["bgInput"]:
                 entries[ts].add_event(ts,
                                       BolusGlycemiaEvent(row["bgInput"], row["units"]))
-
+            
             try:
                 entries[ts].add_event(ts,
                                       BolusTargetGlycemiaEvent(row["bgTarget"]["target"] * GLYCEMIA_MMOL_TO_MG,  "mg/dL"))
@@ -336,16 +339,22 @@ def parse_tidepool(cache_file):
         elif row["type"] == "pumpSettings":
             # row["carbRatio"]
             if "carbRatio" in row:
+                startTime2value = {}
                 for ratio in row["carbRatio"]:
-                    start_time = datetime.timedelta(milliseconds=ratio["start"])
-                    entries[ts].add_event(ts, CarbsRatioTimeRange(ratio["amount"], start_time))
+                    start_time = TimeRange.time_from_milliseconds(ratio["start"])
+                    value = ratio["amount"]
+                    startTime2value[start_time] = value
+                entries[ts].add_event(ts, CarbsRatioTimeRange(startTime2value))
                 del row["carbRatio"]
 
             # row["basalSchedules"]
             for basal_pattern, basal_sched in row["basalSchedules"].items():
+                startTime2value = {}
                 for basal in basal_sched:
-                    start_time = datetime.timedelta(milliseconds=basal["start"])
-                    entries[ts].add_event(ts, BasalTimeRange(basal["rate"], start_time))
+                    start_time = TimeRange.time_from_milliseconds(basal["start"])
+                    value = basal["rate"]
+                    startTime2value[start_time] = value
+                entries[ts].add_event(ts, BasalTimeRange(startTime2value))
             del row["basalSchedules"]
 
             # row["activeSchedule"]
@@ -362,9 +371,12 @@ def parse_tidepool(cache_file):
             if "insulinSensitivities" in row:
                 name, = row["insulinSensitivities"].keys()
                 values, = row["insulinSensitivities"].values()
+                startTime2value = {}
                 for sensitivityRange in values:
-                    start_time = datetime.timedelta(milliseconds=sensitivityRange["start"])
-                    entries[ts].add_event(ts, SensitivityTimeRange(sensitivityRange["amount"], start_time))
+                    start_time = TimeRange.time_from_milliseconds(sensitivityRange["start"])
+                    value = sensitivityRange["amount"]
+                    startTime2value[start_time] = value
+                entries[ts].add_event(ts, SensitivityTimeRange(startTime2value))
                 del row["insulinSensitivities"]
 
             # bgTarget
