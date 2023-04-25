@@ -93,7 +93,9 @@ class PlotBolusStudy():
 
         current_gly_prediction = None
         current_gly_prediction_date = None
-
+        total_absorbed_insulin = 0
+        total_absorbed_carbs = 0
+        total_time = 0
         current_insulin = None
         current_carbs = None
 
@@ -194,7 +196,7 @@ class PlotBolusStudy():
                 bolus_x_y[ts + YOTA] = None
 
                 try:
-                    bolus_bg = entry.get(EventType.GLYCEMIA_BOLUS_BASE).value
+                    bolus_bg = entry.get(EventType.GLYCEMIA_BOLUS_BASE).value 
                 except AttributeError:
                     bolus_bg = list(gly_x_y.values())[-1] \
                         if gly_x_y else 0
@@ -251,6 +253,8 @@ class PlotBolusStudy():
                     current_gly_prediction_date = ts
                     current_gly_prediction = bolus_bg
 
+                prediction[ts-YOTA] = None
+                current_gly_prediction = bolus_bg
                 prediction[ts] = current_gly_prediction
 
                 iob[ts] = (current_insulin if current_insulin else 0) + bolus_insulin
@@ -281,7 +285,7 @@ class PlotBolusStudy():
                     current_gly_prediction = carbs_bg
                     current_gly_prediction_date = ts
 
-                cob[ts] = current_carbs
+                cob[ts] = (current_carbs if current_carbs else 0) + carbs_amount
 
                 prediction[ts] = current_gly_prediction
 
@@ -344,27 +348,30 @@ class PlotBolusStudy():
                 current_insulin = 0
                 for bolus_ts, insulin_info in insulin_on_board.copy().items():
                     insulin_age = ts - bolus_ts
-                    if insulin_age >= INSULIN_ACTIVITY + YOTA:
+                    last_prediction_age = current_gly_prediction_date - bolus_ts
+                    if last_prediction_age > INSULIN_ACTIVITY:
                         del insulin_on_board[bolus_ts]
                         continue
 
-                    absorbed_insulin =  insulin_info.amount * insulin_age.total_seconds() * INSULIN_ABSORBTION_RATE_per_seconds
+                    absorbed_insulin = insulin_info.amount * insulin_age.total_seconds() * INSULIN_ABSORBTION_RATE_per_seconds
+                    if absorbed_insulin > insulin_info.amount:
+                        absorbed_insulin = insulin_info.amount
                     current_insulin += insulin_info.amount - absorbed_insulin
-
-                if not insulin_on_board:
-                    current_insulin = None
-
-                    eob_info = types.SimpleNamespace()
-                    eob_info.is_end_of_bolus = True
-                    eob_info.gly = list(gly_x_y.values())[-1]
-                    daily_log[ts].append(eob_info)
-
-                elif current_insulin < 0.001:
+                
+                if current_insulin < 0.001:
                     if current_insulin > -0.1:
                         current_insulin = 0
                     else:
                         logging.error(f"Insulin on board = {current_insulin} :/ ")
                         logging.error(f"Insulin shots: {insulin_on_board}")
+
+            elif current_insulin == 0:
+                current_insulin = None
+
+                eob_info = types.SimpleNamespace()
+                eob_info.is_end_of_bolus = True
+                eob_info.gly = list(gly_x_y.values())[-1]
+                daily_log[ts].append(eob_info)
             else:
                 current_insulin = None
 
@@ -372,18 +379,20 @@ class PlotBolusStudy():
                 current_carbs = 0
                 for carbs_ts, carbs_info in carbs_on_board.copy().items():
                     carbs_age = ts - carbs_ts
-
+                    last_prediction_age = current_gly_prediction_date - carbs_ts
+                    
                     absorbed_carbs = carbs_age.total_seconds() * CARBS_ABSORTION_RATE_per_seconds
-
-                    if absorbed_carbs >= carbs_info.amount:
+                    last_prediction_absorbed_carbs = last_prediction_age.total_seconds() * CARBS_ABSORTION_RATE_per_seconds
+                    if last_prediction_absorbed_carbs >= carbs_info.amount:
                         del carbs_on_board[carbs_ts]
+
+                    if absorbed_carbs > carbs_info.amount:
                         absorbed_carbs = carbs_info.amount
-
                     current_carbs += carbs_info.amount - absorbed_carbs
-
+                    
                 if not carbs_on_board:
                     current_carbs = None
-
+    
             if current_carbs is None and current_insulin is None:
                 prediction[ts] = None
                 iob[ts] = None
@@ -401,38 +410,61 @@ class PlotBolusStudy():
                 continue
 
             new_gly_prediction = current_gly_prediction
-
+            prediction_updated = False
             if current_carbs is not None:
                 carbs_delta_seconds = (ts - current_gly_prediction_date).total_seconds()
                 try:
                     current_insulin_sensitivity = list(insulin_on_board.values())[-1].sensitivity
                 except IndexError:
-                    current_insulin_sensitivity = DEFAULT_INSULIN_SENSITIVITY
-                    logging.warning(f"{ts} - No insulin sensitivity available")
+                    current_insulin_sensitivity = get_current_range(current_sensitivity_timerange, ts)
+                    if not current_insulin_sensitivity:
+                        current_insulin_sensitivity = DEFAULT_INSULIN_SENSITIVITY
+                        logging.warning(f"{ts} - No insulin sensitivity available")
                 try:
                     current_carbs_ratio = list(insulin_on_board.values())[-1].ratio
                 except IndexError:
-                    current_carbs_ratio = DEFAULT_CARB_RATIO
-                    logging.warning(f"{ts} - No carbs/insulin ratio available")
+                    current_carbs_ratio = get_current_range(current_ratio_timerange, ts)
+                    if current_carbs_ratio is None:
+                        current_carbs_ratio = DEFAULT_CARB_RATIO
+                        logging.warning(f"{ts} - No carbs/insulin ratio available")
 
-                for carbs_ts, carbs_info in carbs_on_board.copy().items():
-                    carbs_delta_seconds = (ts - current_gly_prediction_date).total_seconds()
+                absorbed_carbs = 0
+                
+                carbs_delta_seconds = (ts - current_gly_prediction_date).total_seconds()
+                for carbs_ts, carbs_info in carbs_on_board.items():
+                    absorbed_carbs += carbs_delta_seconds * CARBS_ABSORTION_RATE_per_seconds
+                    total_absorbed = (ts - carbs_ts).total_seconds() * CARBS_ABSORTION_RATE_per_seconds
+                    absorbed_extra = total_absorbed - carbs_info.amount
+                    if absorbed_extra > 0:
+                        absorbed_carbs -= absorbed_extra
+                    
+                total_absorbed_carbs += absorbed_carbs
 
-                    absorbed_carbs = min(current_carbs, carbs_delta_seconds * CARBS_ABSORTION_RATE_per_seconds)
+                if absorbed_carbs > current_carbs:
+                    absorbed_carbs = current_carbs
+                new_gly_prediction += absorbed_carbs / current_carbs_ratio * current_insulin_sensitivity
+                prediction_updated = True
 
-                    new_gly_prediction += (absorbed_carbs / current_carbs_ratio * current_insulin_sensitivity)
-
-
-            if current_insulin is not None:
+            if current_insulin is not None and insulin_on_board:
                 insulin_delta_seconds = (ts - current_gly_prediction_date).total_seconds()
+ 
+                absorbed_insulin = 0
+                for bolus_ts, insulin_info in insulin_on_board.items():
+                    bolus_insulin_eol = bolus_ts + INSULIN_ACTIVITY
+                    delta_correction = (ts - bolus_insulin_eol).total_seconds() \
+                        if ts > bolus_insulin_eol else 0
+                    
+                    absorbed_insulin += insulin_info.amount * (insulin_delta_seconds - delta_correction) * INSULIN_ABSORBTION_RATE_per_seconds
+                
+                total_absorbed_insulin += absorbed_insulin
 
-                for bolus_ts, insulin_info in insulin_on_board.copy().items():
-                    absorted_insulin = insulin_info.amount * insulin_delta_seconds * INSULIN_ABSORBTION_RATE_per_seconds
-
-                    new_gly_prediction -= absorted_insulin * insulin_info.sensitivity
-
-
-            prediction[ts] = new_gly_prediction
+                total_time += insulin_delta_seconds
+                new_gly_prediction -= absorbed_insulin * insulin_info.sensitivity
+                prediction_updated = True
+                
+            if prediction_updated:
+                prediction[ts] = new_gly_prediction
+                
             cob[ts] = current_carbs
             if not current_carbs: current_carbs = None
             iob[ts] = current_insulin
