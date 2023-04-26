@@ -183,8 +183,12 @@ def generate_summary(plots, period_name, period):
 
             if not keep:
                 continue
+
+            if not data.x:
+                continue
             
             date = list(data.x)[0].date()
+
             day_offset = date - period[0].date()
             data.legendgroup = str(date)
             import locale
