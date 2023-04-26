@@ -213,7 +213,7 @@ def generate_summary(plots, period_name, period):
             headers += [html.Br()]
         
         current_line = []
-        for child in text.children:
+        for child in text.children if text else []:
             if not isinstance(child, html.Br):
                 current_line.append(child)
                 continue
