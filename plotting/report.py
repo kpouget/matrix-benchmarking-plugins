@@ -76,7 +76,9 @@ def Plot_and_Text(name, args):
                        "padding": "0.5em",
                        "background-color": "lightgray",
                        }))
-
+    else:
+        data.append(None)
+        
     return data
 
 PERIODS = "matin", "midi", "gouter", "diner", "nuit", "tout"
