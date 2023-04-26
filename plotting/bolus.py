@@ -126,7 +126,7 @@ class PlotBolusStudy():
                     value = time_value
                 else:
                     break
-            if value is None: import pdb;pdb.set_trace()
+
             return value
         
         for ts, entry in sorted(entry.results.items()):
@@ -161,7 +161,7 @@ class PlotBolusStudy():
             if basal_ev := entry.get(EventType.BASAL_RATE_ACTUAL):
                 if basal_ev.value == 0 or current_basal == 0:
                     basal_interrupted[ts - YOTA] = 0
-                    basal_interrupted[ts] = 300
+                    basal_interrupted[ts] = 1
                     basal_interrupted[ts + YOTA] = None
 
                     hypo_info = types.SimpleNamespace()
@@ -214,7 +214,7 @@ class PlotBolusStudy():
                     insulin_sensitivity = entry.get(EventType.INSULIN_SENSITIVITY).value
                 except AttributeError:
                     insulin_sensitivity = get_current_range(current_sensitivity_timerange, ts)
-                    if bolus_ratio is None:
+                    if insulin_sensitivity is None:
                         logging.warning(f"Could not find the sensitivity for {ts.time()} in {current_ratio_timerange}")
                         insulin_sensitivity = DEFAULT_INSULIN_SENSITIVITY
 
@@ -278,6 +278,22 @@ class PlotBolusStudy():
                 carbs_info.gly = carbs_bg
                 carbs_info.is_carbs = True
 
+                try:
+                    carbs_info.ratio = entry.get(EventType.INSULIN_CARB_RATIO).value
+                except AttributeError:
+                    carbs_info.ratio = get_current_range(current_ratio_timerange, ts)
+                    if carbs_info.ratio is None:
+                        logging.warning(f"Could not find the ratio for {ts.time()} in {current_ratio_timerange}")
+                        carbs_info.ratio = DEFAULT_CARB_RATIO
+                        
+                try:
+                    carbs_info.insulin_sensitivity = entry.get(EventType.INSULIN_SENSITIVITY).value
+                except AttributeError:
+                    carbs_info.insulin_sensitivity = get_current_range(current_sensitivity_timerange, ts)
+                    if carbs.insulin_sensitivity is None:
+                        logging.warning(f"Could not find the sensitivity for {ts.time()} in {current_ratio_timerange}")
+                        carbs_info.insulin_sensitivity = DEFAULT_INSULIN_SENSITIVITY
+                
                 carbs_on_board[ts] = carbs_info
                 daily_log[ts].append(carbs_info)
 
@@ -314,11 +330,12 @@ class PlotBolusStudy():
                     insulin_diff = gly_diff / DEFAULT_INSULIN_SENSITIVITY
                     if not insulin_adjustment_x_y:
                         insulin_adjustment_x_y[basal_study_start_time] = 0
+                        
                     elif list(insulin_adjustment_x_y.values())[-1] is None:
                         insulin_adjustment_x_y[basal_study_start_time] = 0
 
                     if True: #abs(insulin_diff) >= 0.1:
-                        new_basal = 5 * round((current_basal_profile + insulin_diff) * 100 / 5) / 100
+                        new_basal = 5 * round((current_basal_profile + insulin_diff) * 100 / 5) / 100 # rount to 5 or 10
                         insulin_adjustment_x_y[basal_study_start_time + YOTA] = new_basal
                         insulin_adjustment_x_y[ts - YOTA] = new_basal
                     else:
@@ -413,20 +430,6 @@ class PlotBolusStudy():
             prediction_updated = False
             if current_carbs is not None:
                 carbs_delta_seconds = (ts - current_gly_prediction_date).total_seconds()
-                try:
-                    current_insulin_sensitivity = list(insulin_on_board.values())[-1].sensitivity
-                except IndexError:
-                    current_insulin_sensitivity = get_current_range(current_sensitivity_timerange, ts)
-                    if not current_insulin_sensitivity:
-                        current_insulin_sensitivity = DEFAULT_INSULIN_SENSITIVITY
-                        logging.warning(f"{ts} - No insulin sensitivity available")
-                try:
-                    current_carbs_ratio = list(insulin_on_board.values())[-1].ratio
-                except IndexError:
-                    current_carbs_ratio = get_current_range(current_ratio_timerange, ts)
-                    if current_carbs_ratio is None:
-                        current_carbs_ratio = DEFAULT_CARB_RATIO
-                        logging.warning(f"{ts} - No carbs/insulin ratio available")
 
                 absorbed_carbs = 0
                 
@@ -437,11 +440,10 @@ class PlotBolusStudy():
                     absorbed_extra = total_absorbed - carbs_info.amount
                     if absorbed_extra > 0:
                         absorbed_carbs -= absorbed_extra
-                    
-                total_absorbed_carbs += absorbed_carbs
-
-                new_gly_prediction += absorbed_carbs / current_carbs_ratio * current_insulin_sensitivity
-                prediction_updated = True
+                
+                    total_absorbed_carbs += absorbed_carbs
+                    new_gly_prediction += absorbed_carbs / carbs_info.ratio * carbs_info.insulin_sensitivity
+                    prediction_updated = True
 
             if current_insulin is not None and insulin_on_board:
                 insulin_delta_seconds = (ts - current_gly_prediction_date).total_seconds()
@@ -552,8 +554,10 @@ class PlotBolusStudy():
 
         fig.add_trace(go.Scatter(x=gly_x, y=gly_y, name="Glycemia", line_color="darkgreen", legendgroup="Glycemia"))
 
+        DASH_COLUMNS_HEIGHT = 350
+        
         fig.add_trace(go.Scatter(x=list(carbs_x_y.keys()),
-                                 y=[(v*1500 if v is not None else None) for v in carbs_x_y.values()],
+                                 y=[(v and DASH_COLUMNS_HEIGHT if v is not None else None) for v in carbs_x_y.values()],
                                  name=f"Meal",
                                  line_dash="dot",
                                  hoverlabel= {'namelength' :-1},
@@ -563,29 +567,13 @@ class PlotBolusStudy():
                                  mode="lines"))
 
         fig.add_trace(go.Scatter(x=list(bolus_x_y.keys()),
-                                 y=[(v*500 if v is not None else None) for v in bolus_x_y.values()],
+                                 y=[(v and DASH_COLUMNS_HEIGHT if v is not None else None) for v in bolus_x_y.values()],
                                  name=f"Bolus",
                                  line_dash="dash",
                                  hoverlabel= {'namelength' :-1},
                                  line=dict(width=1),
                                  line_color="blue",
                                  visible="legendonly" if basal_mode else None,
-                                 mode="lines"))
-
-        fig.add_trace(go.Scatter(x=list(bolus_x_y.keys()),
-                                 y=[(v*10 if v is not None else None) for v in bolus_x_y.values()],
-                                 name=f"Insuline shot (*10)",
-                                 hoverlabel= {'namelength' :-1},
-                                 line=dict(width=12),
-                                 line_color="blue",
-                                 mode="lines"))
-
-        fig.add_trace(go.Scatter(x=list(carbs_x_y.keys()),
-                                 y=list(carbs_x_y.values()),
-                                 name=f"Carbs",
-                                 hoverlabel= {'namelength' :-1},
-                                 line=dict(width=6),
-                                 line_color="coral",
                                  mode="lines"))
 
         fig.add_trace(go.Scatter(x=list(prediction.keys()),
@@ -640,7 +628,7 @@ class PlotBolusStudy():
                                  mode="lines"))
 
         fig.add_trace(go.Scatter(x=list(basal_interrupted.keys()),
-                                 y=list(basal_interrupted.values()),
+                                 y=[v and DASH_COLUMNS_HEIGHT for v in basal_interrupted.values()],
                                  name=f"Interruption de basal",
                                  hoverlabel= {'namelength' :-1},
                                  line=dict(width=1),
@@ -656,7 +644,23 @@ class PlotBolusStudy():
                                  line=dict(width=1),
                                  line_color="red",
                                  line_width=2,
-                                 visible="legendonly" if bolus_mode else None,
+                                 visible="legendonly" ,
+                                 mode="lines"))
+
+        fig.add_trace(go.Scatter(x=list(bolus_x_y.keys()),
+                                 y=[(v*10 if v is not None else None) for v in bolus_x_y.values()],
+                                 name=f"Insuline shot (*10)",
+                                 hoverlabel= {'namelength' :-1},
+                                 line=dict(width=12),
+                                 line_color="blue",
+                                 mode="lines"))
+
+        fig.add_trace(go.Scatter(x=list(carbs_x_y.keys()),
+                                 y=list(carbs_x_y.values()),
+                                 name=f"Carbs",
+                                 hoverlabel= {'namelength' :-1},
+                                 line=dict(width=6),
+                                 line_color="coral",
                                  mode="lines"))
         
         gly_y_max = max(gly_y)

@@ -375,7 +375,7 @@ def parse_tidepool(cache_file):
                 for sensitivityRange in values:
                     start_time = TimeRange.time_from_milliseconds(sensitivityRange["start"])
                     value = sensitivityRange["amount"]
-                    startTime2value[start_time] = value
+                    startTime2value[start_time] = value * GLYCEMIA_MMOL_TO_MG
                 entries[ts].add_event(ts, SensitivityTimeRange(startTime2value))
                 del row["insulinSensitivities"]
 
