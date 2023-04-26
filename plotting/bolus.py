@@ -440,8 +440,6 @@ class PlotBolusStudy():
                     
                 total_absorbed_carbs += absorbed_carbs
 
-                if absorbed_carbs > current_carbs:
-                    absorbed_carbs = current_carbs
                 new_gly_prediction += absorbed_carbs / current_carbs_ratio * current_insulin_sensitivity
                 prediction_updated = True
 
