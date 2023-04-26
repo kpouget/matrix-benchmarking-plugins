@@ -579,7 +579,7 @@ class PlotBolusStudy():
         fig.add_trace(go.Scatter(x=list(prediction.keys()),
                                  y=list(prediction.values()),
                                  name=f"Glycemie prediction",
-                                 visible="legendonly",
+                                 #visible="legendonly",
                                  hoverlabel={'namelength' :-1},
                                  line=dict(width=2),
                                  line_color="red",
@@ -644,7 +644,7 @@ class PlotBolusStudy():
                                  line=dict(width=1),
                                  line_color="red",
                                  line_width=2,
-                                 visible="legendonly" ,
+                                 #visible="legendonly" ,
                                  mode="lines"))
 
         fig.add_trace(go.Scatter(x=list(bolus_x_y.keys()),
