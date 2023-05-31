@@ -186,7 +186,10 @@ class PlotBolusStudy():
 
             entry_has_carbs = False
             entry_has_bolus = False
-            if bolus_ev := entry.get(EventType.BOLUS):
+
+            normal_bolus_ev = entry.get(EventType.BOLUS)
+            micro_bolus_ev = entry.get(EventType.MICRO_BOLUS)
+            if bolus_ev := (normal_bolus_ev or micro_bolus_ev):
                 entry_has_bolus = True
 
                 bolus_insulin = bolus_ev.value
@@ -545,12 +548,12 @@ class PlotBolusStudy():
 
         fig.add_trace(go.Scatter(x=x_below, y=below_bounds, line=dict(width=0),
                                  mode="lines",  legendgroup="Glycemia range",
-                                 line_color="darkblue", showlegend=False, name="Hypoglycemia limit"))
+                                 line_color="darkred", showlegend=False, name="Hypoglycemia limit"))
 
         fig.add_trace(go.Scatter(x=[gly_x[0], gly_x[-1]], y=lower_bound, fill='tonexty',
                                  name="Hypoglycemia", mode="lines",
                                  line=dict(width=0),
-                                 fillcolor='blue', legendgroup="Glycemia range"))
+                                 fillcolor='red', legendgroup="Glycemia range"))
 
         fig.add_trace(go.Scatter(x=gly_x, y=gly_y, name="Glycemia", line_color="darkgreen", legendgroup="Glycemia"))
 
@@ -579,7 +582,7 @@ class PlotBolusStudy():
         fig.add_trace(go.Scatter(x=list(prediction.keys()),
                                  y=list(prediction.values()),
                                  name=f"Glycemie prediction",
-                                 #visible="legendonly",
+                                 visible="legendonly",
                                  hoverlabel={'namelength' :-1},
                                  line=dict(width=2),
                                  line_color="red",
@@ -644,7 +647,7 @@ class PlotBolusStudy():
                                  line=dict(width=1),
                                  line_color="red",
                                  line_width=2,
-                                 #visible="legendonly" ,
+                                 visible="legendonly" ,
                                  mode="lines"))
 
         fig.add_trace(go.Scatter(x=list(bolus_x_y.keys()),
@@ -663,11 +666,11 @@ class PlotBolusStudy():
                                  line_color="coral",
                                  mode="lines"))
         
-        gly_y_max = max(gly_y)
-        y_min = min([0] + [v * 100 for v in insulin_adjustment_x_y.values() if v])
+        gly_y_max_max = max(max(gly_y), 239)
+        #y_min = min([0] + [v * 100 for v in insulin_adjustment_x_y.values() if v])
+        y_min = 0
+        #gly_y_max_max = max([gly_y_max] + [v for v in prediction.values() if v] + [239])
         
-        gly_y_max_max = max([gly_y_max] + [v for v in prediction.values() if v] + [239])
-
         fig.update_layout(title=plot_title, title_x=0.5)
         fig.update_layout(yaxis=dict(title=f"Glycémie",
                                       range=[y_min * 1.05, gly_y_max_max*1.05],

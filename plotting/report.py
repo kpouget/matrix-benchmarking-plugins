@@ -168,6 +168,7 @@ def generate_summary(plots, period_name, period):
 
     headers = []
     for plot, text in plots:
+        if not plot.figure: continue
         for _data in plot.figure.data:
             data = copy.deepcopy(_data)
             keep = data.name in [

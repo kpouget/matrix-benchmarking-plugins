@@ -36,6 +36,8 @@ class EventType(Enum):
     KETONE = "ketone"
     CARBS = "carbs"
     BOLUS = "bolus"
+    MICRO_BOLUS = "microBolus"
+    
     NEW_RESERVOIR = "newReservoir"
     NEW_CATHE = "newCathe"
     INSULIN_CARB_RATIO = "insulinCarbRatio"
@@ -55,7 +57,8 @@ class TimeRangeType(Enum):
     INSULIN_SENSITIVITY = "insulinSensitivity"
     INSULIN_CARB_RATIO = "insulinCarbRatio"
     BASAL = "basal"
-
+    OVERRIDE = "override"
+    
 class Event():
     def __init__(self, ev_type, value, units):
         self.ev_type = ev_type
@@ -139,6 +142,9 @@ def CarbsEvent(value):
 def BolusEvent(value):
     return Event(EventType.BOLUS, value, "u")
 
+def MicroBolusEvent(value):
+    return Event(EventType.MICRO_BOLUS, value, "u")
+
 def NewReservoirEvent():
     return Event(EventType.NEW_RESERVOIR, 1, "")
 
@@ -156,6 +162,9 @@ def CarbsRatioTimeRange(startTime2value):
 
 def BasalTimeRange(startTime2value):
     return TimeRange(TimeRangeType.BASAL, startTime2value, "u/h")
+
+def PumpSettingsOverrideEventTimeRange(overrideType, duration):
+    return TimeRange(TimeRangeType.OVERRIDE, overrideType, duration)
 
 def parse_fake():
     entries = defaultdict(Entry)
@@ -300,12 +309,16 @@ def parse_tidepool(cache_file):
                 if row["normal"] >= 0.05:
                     entries[ts].add_event(ts, BolusEvent(row["normal"]))
                 pass
+            elif row["subType"] == "automated":
+                if row["normal"] >= 0.05:
+                    entries[ts].add_event(ts, MicroBolusEvent(row["normal"]))
             elif row["subType"] == "dual/square":
                 # {'_deduplicator': {'hash': 'RfyTx5FL2w83YaiAfNotpNo8Z4kGBIjCiJ1p0EEm4Lk='}, 'clockDriftOffset': 0, 'conversionOffset': 0, 'deviceId': 'MMT-1712:NG2629137H', 'deviceTime': '2021-10-16T19:06:58', 'duration': 1740000, 'expectedDuration': 1800000, 'expectedExtended': 0.3, 'extended': 0.3, 'id': '7042a4c2a89e1f5f25e0460b044ee749', 'normal': 0.2, 'payload': {'logIndices': [2155727818]}, 'revision': 1, 'subType': 'dual/square', 'time': '2021-10-16T17:06:58.000Z', 'timezoneOffset': 120, 'type': 'bolus', 'uploadId': '770530ce3b3d97fc4f0ebb0d0bdd2a2f'}
                 pass
             else:
+                print(row)
                 import pdb;pdb.set_trace()
-
+                pass
             pass
         elif row["type"] in ("cbg, ""smbg"):
 
@@ -333,8 +346,7 @@ def parse_tidepool(cache_file):
                 # ignore
                 pass
             else:
-                #import pdb;pdb.set_trace()
-                pass
+                print(row)
             pass
         elif row["type"] == "pumpSettings":
             # row["carbRatio"]
@@ -394,8 +406,7 @@ def parse_tidepool(cache_file):
                     # ignore
                     pass
                 else:
-                    import pdb;pdb.set_trace()
-                    pass
+                    print(row)
             elif row["subType"] == "status":
                 if row["status"] == "suspended":
                     # future work
@@ -406,8 +417,7 @@ def parse_tidepool(cache_file):
                     # {'annotations': [{'code': 'status/unknown-previous'}], 'clockDriftOffset': 0, 'conversionOffset': 0, 'deviceId': 'tandem1002717942134', 'deviceTime': '2023-03-20T23:04:39', 'guid': 'ba724b9e-74d0-4d49-ac4c-e1bb75716c5d', 'id': 'tg50ad2kb9e1i1pl38ka49strl9phd8u', 'payload': {'logIndices': [15200]}, 'reason': {'resumed': 'automatic'}, 'status': 'resumed', 'subType': 'status', 'time': '2023-03-20T22:04:39Z', 'timezoneOffset': 60, 'type': 'deviceEvent', 'uploadId': 'upid_61c584ea0947'}
                     pass
                 else:
-                    import pdb;pdb.set_trace()
-                    pass
+                    print(row) 
             elif row["subType"] == "alarm":
                 # {'alarmType': 'other', 'clockDriftOffset': 46000, 'conversionOffset': 0, 'deviceId': 'tandem1002717942134', 'deviceTime': '2023-03-25T19:24:47', 'guid': 'ab9567e6-0339-4871-9615-e15a1fffe113', 'id': 'mvd2i4os6qaecg1bhnhntr6n7eaouhvh', 'payload': {'alert_id': 48, 'logIndices': [25642]}, 'subType': 'alarm', 'time': '2023-03-25T18:24:47Z', 'timezoneOffset': 60, 'type': 'deviceEvent', 'uploadId': 'upid_48ad1e0597e2'}
                 pass
@@ -437,8 +447,12 @@ def parse_tidepool(cache_file):
 #   "timezoneOffset": 120,
 #   "type": "deviceEvent",
 #   "uploadId": "upid_48ad1e0597e2"}
-                    pass
+                pass
+            elif row["subType"] == "pumpSettingsOverride":
+                PumpSettingsOverrideEventTimeRange(row["overrideType"], row["duration"])
+                
             else:
+                print(row)
                 import pdb;pdb.set_trace()
             pass
         elif row["type"] == "food":
